@@ -46,7 +46,7 @@
     };
   });
 
-  const label = $derived((): string => {
+  const label = $derived.by((): string => {
     const names = typingUsers.map((u) => u.username);
     if (names.length === 0) return '';
     if (names.length === 1) return `${names[0]} is typing`;

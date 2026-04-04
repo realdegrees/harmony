@@ -7,6 +7,7 @@
     error?: string;
     label?: string;
     id?: string;
+    autofocus?: boolean;
     autocomplete?: import('svelte/elements').HTMLInputAttributes['autocomplete'];
     class?: string;
     oninput?: (e: Event & { currentTarget: HTMLInputElement }) => void;
@@ -22,6 +23,7 @@
     error = '',
     label = '',
     id = '',
+    autofocus = false,
     autocomplete = 'off',
     class: className = '',
     oninput,
@@ -45,6 +47,7 @@
     {type}
     {placeholder}
     {disabled}
+    {autofocus}
     {autocomplete}
     bind:value
     class="

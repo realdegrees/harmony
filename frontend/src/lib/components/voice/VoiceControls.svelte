@@ -3,12 +3,12 @@
   import { auth } from '$lib/stores/auth.svelte';
   import { StreamType } from '@harmony/shared/types/voice';
 
-  // Channel name prop for display
   interface Props {
     channelName?: string;
+    soundboardOpen?: boolean;
   }
 
-  let { channelName = 'Voice Channel' }: Props = $props();
+  let { channelName = 'Voice Channel', soundboardOpen = $bindable(false) }: Props = $props();
 
   function handleToggleMute() {
     voice.toggleMute();
@@ -84,7 +84,7 @@
     </div>
 
     <!-- Control buttons -->
-    <div class="flex items-center justify-around px-2 pb-2 gap-1">
+    <div class="flex items-center justify-around px-2 pb-2 gap-1 flex-wrap">
       <!-- Mute -->
       <button
         onclick={handleToggleMute}
@@ -159,6 +159,26 @@
           <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6zm8 9l-5-3 5-3v6z"/>
         </svg>
         <span class="text-[10px] font-medium">Screen</span>
+      </button>
+
+      <!-- Soundboard -->
+      <button
+        onclick={() => (soundboardOpen = !soundboardOpen)}
+        title={soundboardOpen ? 'Close Soundboard' : 'Soundboard'}
+        aria-label={soundboardOpen ? 'Close soundboard' : 'Open soundboard'}
+        aria-pressed={soundboardOpen}
+        class="
+          flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl
+          transition-all duration-100
+          {soundboardOpen
+            ? 'bg-brand/15 text-brand border border-brand/20 hover:bg-brand/20'
+            : 'text-text-secondary hover:bg-white/[0.07] hover:text-text-primary'}
+        "
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3V13.55C11.41 13.21 10.73 13 10 13C7.79 13 6 14.79 6 17S7.79 21 10 21 14 19.21 14 17V7H18V3H12Z"/>
+        </svg>
+        <span class="text-[10px] font-medium">Sounds</span>
       </button>
     </div>
   </div>

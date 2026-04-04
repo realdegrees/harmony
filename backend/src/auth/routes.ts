@@ -4,6 +4,8 @@ import { generateTokenPair, verifyRefreshToken } from './jwt';
 import { db } from '../db/client';
 import { json, error } from '../utils/response';
 import { sanitizeUser } from '../users/service';
+import { validateAndClaimToken } from './admin-token';
+import { assignRole, getAdminRole } from '../roles/service';
 
 // ---------------------------------------------------------------------------
 // POST /api/auth/register
@@ -143,6 +145,42 @@ async function handleLogout(_req: Request): Promise<Response> {
 }
 
 // ---------------------------------------------------------------------------
+// POST /api/auth/claim-admin   (authenticated — token in body)
+// ---------------------------------------------------------------------------
+async function handleClaimAdmin(req: Request, userId: string): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return error('Invalid JSON body', 400, 'INVALID_BODY');
+  }
+
+  const token = (body as { token?: unknown }).token;
+  if (typeof token !== 'string' || !token.trim()) {
+    return error('token is required', 400, 'MISSING_TOKEN');
+  }
+
+  const result = validateAndClaimToken(token.trim());
+
+  if (result === 'invalid') {
+    return error('Invalid admin token', 403, 'INVALID_TOKEN');
+  }
+  if (result === 'already_claimed') {
+    return error('Admin token has already been claimed. Restart the server to generate a new one.', 403, 'TOKEN_USED');
+  }
+
+  // Assign the Admin role to this user
+  const adminRole = await getAdminRole();
+  if (!adminRole) {
+    return error('Admin role not found — ensure ensureDefaultRoles() ran at startup', 500, 'NO_ADMIN_ROLE');
+  }
+
+  await assignRole(userId, adminRole.id);
+
+  return json({ message: 'Admin privileges granted.' });
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
@@ -170,6 +208,23 @@ export async function handleAuthRoute(
 
   if (path === '/api/auth/logout' && method === 'POST') {
     return handleLogout(req);
+  }
+
+  return null;
+}
+
+/**
+ * Handles authenticated auth routes (requires userId from middleware).
+ */
+export async function handleAuthenticatedRoute(
+  req: Request,
+  path: string,
+  userId: string,
+): Promise<Response | null> {
+  const method = req.method.toUpperCase();
+
+  if (path === '/api/auth/claim-admin' && method === 'POST') {
+    return handleClaimAdmin(req, userId);
   }
 
   return null;

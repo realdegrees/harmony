@@ -177,10 +177,10 @@
   <!-- Search field -->
   <div
     class="
-      flex items-center gap-1.5 px-2.5 rounded
-      bg-bg-input border border-transparent
+      flex items-center gap-1.5 px-2.5 rounded-xl
+      bg-white/[0.06] backdrop-blur-sm border border-white/[0.08]
       transition-all duration-150 cursor-text
-      {isExpanded ? 'border-brand w-72' : 'w-36 hover:border-divider'}
+      {isExpanded ? 'border-brand/50 shadow-[0_0_0_3px_rgba(92,110,240,0.12)] w-72' : 'w-36 hover:border-white/[0.14]'}
     "
     onclick={expand}
     role="searchbox"
@@ -252,7 +252,8 @@
     <div
       class="
         absolute top-full mt-1 left-0 right-0 z-50
-        bg-bg-floating border border-divider rounded-lg shadow-xl
+        bg-white/[0.08] backdrop-blur-2xl border border-white/[0.10]
+        rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.5)]
         overflow-hidden py-1
       "
       role="listbox"
@@ -261,7 +262,7 @@
       {#each suggestions as suggestion (suggestion.id)}
         <button
           onclick={() => selectSuggestion(suggestion)}
-          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-bg-hover transition-colors text-left"
+          class="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-white/[0.08] transition-all duration-100 text-left"
           role="option"
           aria-selected="false"
         >

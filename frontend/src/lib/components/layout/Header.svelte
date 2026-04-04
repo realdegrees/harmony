@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { ui } from '$lib/stores/ui.svelte';
   import { notifications } from '$lib/stores/notifications.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
@@ -8,6 +9,7 @@
   import type { User } from '@harmony/shared/types/user';
   import type { SearchFilters } from '@harmony/shared/types/message';
   import { ChannelType } from '@harmony/shared/types/channel';
+  import { NotificationType } from '@harmony/shared/types/notification';
   import { presence } from '$lib/stores/presence.svelte';
 
   interface Props {
@@ -20,6 +22,32 @@
   const unreadCount = $derived(notifications.unreadNotificationCount);
   let searchOpen = $state(false);
   let searchFilters = $state<SearchFilters | null>(null);
+  let notifOpen = $state(false);
+
+  function notifLabel(type: NotificationType): string {
+    switch (type) {
+      case NotificationType.MENTION: return 'Mentioned you';
+      case NotificationType.DM: return 'Direct message';
+      case NotificationType.CHANNEL_MESSAGE: return 'New message';
+      default: return 'Notification';
+    }
+  }
+
+  function notifTime(iso: string): string {
+    const d = new Date(iso);
+    const now = Date.now();
+    const diff = now - d.getTime();
+    if (diff < 60_000) return 'just now';
+    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+    return d.toLocaleDateString();
+  }
+
+  async function handleNotifClick(id: string, channelId: string | null) {
+    await notifications.markRead(id);
+    if (channelId) goto(`/channels/${channelId}`);
+    notifOpen = false;
+  }
 </script>
 
 <header
@@ -122,11 +150,16 @@
       </button>
     {/if}
 
-    <!-- Notifications bell -->
+    <!-- Notifications bell + dropdown -->
     <div class="relative">
       <button
-        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.07] transition-all duration-100"
+        class="p-1.5 rounded-lg transition-all duration-100
+          {notifOpen
+            ? 'text-text-primary bg-white/[0.12]'
+            : 'text-text-muted hover:text-text-primary hover:bg-white/[0.07]'}"
+        onclick={() => (notifOpen = !notifOpen)}
         aria-label="Notifications{unreadCount > 0 ? ` (${unreadCount} unread)` : ''}"
+        aria-pressed={notifOpen}
         title="Notifications"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -142,12 +175,86 @@
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       {/if}
+
+      <!-- Notification dropdown -->
+      {#if notifOpen}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="fixed inset-0 z-40" onclick={() => (notifOpen = false)}></div>
+        <div
+          class="fixed right-4 z-50 w-80
+                 bg-white/[0.07] backdrop-blur-2xl
+                 border border-white/[0.10]
+                 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.5)]
+                 flex flex-col overflow-hidden"
+          style="top: calc(var(--header-height) + 8px); max-height: min(480px, calc(100vh - var(--header-height) - 24px));"
+        >
+          <!-- Header -->
+          <div class="flex items-center justify-between px-4 py-3 border-b border-white/[0.07] shrink-0">
+            <h2 class="text-sm font-bold text-text-primary">Notifications</h2>
+            {#if unreadCount > 0}
+              <button
+                class="text-xs text-brand hover:text-brand-hover transition-colors font-medium"
+                onclick={() => notifications.markAllRead()}
+              >
+                Mark all read
+              </button>
+            {/if}
+          </div>
+
+          <!-- List -->
+          <div class="overflow-y-auto flex-1">
+            {#if notifications.notifications.length === 0}
+              <div class="flex flex-col items-center justify-center gap-2 py-10 text-text-muted text-sm">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" class="opacity-30" aria-hidden="true">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <p>Nothing here yet</p>
+              </div>
+            {:else}
+              {#each notifications.notifications as notif (notif.id)}
+                <button
+                  class="w-full flex items-start gap-3 px-4 py-3 text-left transition-all duration-100
+                         hover:bg-white/[0.05] border-b border-white/[0.04] last:border-0
+                         {notif.read ? 'opacity-50' : ''}"
+                  onclick={() => handleNotifClick(notif.id, notif.channelId)}
+                >
+                  <!-- Unread dot -->
+                  <span class="mt-1.5 shrink-0 w-2 h-2 rounded-full {notif.read ? 'bg-transparent' : 'bg-brand shadow-[0_0_6px_rgba(92,110,240,0.6)]'}"></span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-text-secondary">{notifLabel(notif.type)}</p>
+                    {#if notif.channelId}
+                      <p class="text-xs text-text-muted truncate">In a channel</p>
+                    {/if}
+                    <p class="text-[10px] text-text-muted mt-0.5">{notifTime(notif.createdAt)}</p>
+                  </div>
+                  {#if !notif.read}
+                    <button
+                      class="shrink-0 p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all"
+                      onclick={(e) => { e.stopPropagation(); notifications.markRead(notif.id); }}
+                      title="Mark as read"
+                      aria-label="Mark as read"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                      </svg>
+                    </button>
+                  {/if}
+                </button>
+              {/each}
+            {/if}
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 </header>
 
 <!-- Search panel — fixed so it escapes overflow:hidden on parent containers -->
 {#if searchOpen}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="fixed inset-0 z-40" onclick={() => { searchOpen = false; searchFilters = null; }}></div>
   <div
     class="fixed right-4 z-50 w-full max-w-md shadow-[0_16px_48px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden border border-white/[0.08]"
     style="top: calc(var(--header-height) + 8px);"

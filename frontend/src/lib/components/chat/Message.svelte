@@ -1,13 +1,16 @@
 <script lang="ts">
   import { auth } from '$lib/stores/auth.svelte';
   import { messages } from '$lib/stores/messages.svelte';
+  import { ws } from '$lib/api/ws';
   import { ui } from '$lib/stores/ui.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import Reply from './Reply.svelte';
   import Reaction from './Reaction.svelte';
   import Attachment from './Attachment.svelte';
   import Embed from './Embed.svelte';
+  import EmojiPicker from './EmojiPicker.svelte';
   import type { Message } from '@harmony/shared/types/message';
+  import type { CustomEmoji } from '@harmony/shared/types/emoji';
 
   interface Props {
     message: Message;
@@ -21,6 +24,16 @@
   let hovered = $state(false);
   let editing = $state(false);
   let editContent = $state('');
+  let reactionPickerOpen = $state(false);
+
+  function handleReactionSelect(emoji: { unicode?: string; custom?: CustomEmoji }) {
+    reactionPickerOpen = false;
+    if (emoji.unicode) {
+      ws.send({ type: 'reaction:add', data: { messageId: message.id, emojiUnicode: emoji.unicode } });
+    } else if (emoji.custom) {
+      ws.send({ type: 'reaction:add', data: { messageId: message.id, emojiId: emoji.custom.id } });
+    }
+  }
 
   const isOwn = $derived(auth.user?.id === message.authorId);
 
@@ -226,18 +239,31 @@
       </button>
 
       <!-- React -->
-      <button
-        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
-        aria-label="Add reaction"
-        title="Add Reaction"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-          <line x1="9" y1="9" x2="9.01" y2="9"></line>
-          <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-      </button>
+      <div class="relative">
+        <button
+          class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
+          onclick={() => (reactionPickerOpen = !reactionPickerOpen)}
+          aria-label="Add reaction"
+          title="Add Reaction"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+          </svg>
+        </button>
+        {#if reactionPickerOpen}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="fixed inset-0 z-40" onclick={() => (reactionPickerOpen = false)}></div>
+          <div class="absolute bottom-8 right-0 z-50">
+            <EmojiPicker
+              onselect={handleReactionSelect}
+              onclose={() => (reactionPickerOpen = false)}
+            />
+          </div>
+        {/if}
+      </div>
 
       <!-- Edit (own message only) -->
       {#if isOwn}

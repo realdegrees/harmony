@@ -87,6 +87,11 @@ async function main() {
 
   await ensureDefaultRoles();
 
+  // Print the ephemeral admin token to stdout so an operator can copy it
+  // into Settings → Account → Claim Admin to self-grant admin privileges.
+  const { printAdminToken } = await import('./auth/admin-token');
+  printAdminToken();
+
   console.log(`Starting ${env.APP_NAME} on port ${env.PORT}...`);
 
   const server = Bun.serve<WsData>({

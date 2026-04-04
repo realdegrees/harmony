@@ -4,7 +4,9 @@
   import { messages } from '$lib/stores/messages.svelte';
   import { ui } from '$lib/stores/ui.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
+  import EmojiPicker from '$lib/components/chat/EmojiPicker.svelte';
   import type { Message } from '@harmony/shared/types/message';
+  import type { CustomEmoji } from '@harmony/shared/types/emoji';
 
   interface Props {
     channelId: string;
@@ -21,6 +23,17 @@
   let isTyping = $state(false);
   let sending = $state(false);
   let dragOver = $state(false);
+  let emojiPickerOpen = $state(false);
+
+  function handleEmojiSelect(emoji: { unicode?: string; custom?: CustomEmoji }) {
+    if (emoji.unicode) {
+      content += emoji.unicode;
+    } else if (emoji.custom) {
+      content += `:${emoji.custom.name}:`;
+    }
+    emojiPickerOpen = false;
+    textareaEl?.focus();
+  }
 
   const replyingTo = $derived(ui.replyingTo);
   const charCount = $derived(content.length);
@@ -89,19 +102,19 @@
 
   async function handleFileSelect(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const formData = new FormData();
-    for (const file of files) {
-      formData.append('files', file);
-    }
     try {
-      const result = await api.upload<{ attachmentIds: string[] }>(
-        `/channels/${channelId}/attachments`,
-        formData
-      );
-      // After upload, send a message with attachment IDs
+      // Backend expects one file per request on POST /api/attachments with field 'file'
+      const attachmentIds: string[] = [];
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const result = await api.upload<{ id: string }>('/attachments', fd);
+        attachmentIds.push(result.id);
+      }
+      // Send a message with the collected attachment IDs
       await api.post(`/channels/${channelId}/messages`, {
         content: content.trim() || '',
-        attachmentIds: result.attachmentIds,
+        attachmentIds,
         replyToId: replyingTo?.id,
       });
       content = '';
@@ -211,19 +224,36 @@
         </span>
       {/if}
 
-      <!-- Emoji button -->
-      <button
-        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-all duration-100"
-        aria-label="Add emoji"
-        title="Add Emoji"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-          <line x1="9" y1="9" x2="9.01" y2="9"></line>
-          <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-      </button>
+      <!-- Emoji button + picker -->
+      <div class="relative">
+        <button
+          class="p-1.5 rounded-lg transition-all duration-100
+            {emojiPickerOpen
+              ? 'text-text-primary bg-white/[0.12]'
+              : 'text-text-muted hover:text-text-primary hover:bg-white/[0.08]'}"
+          onclick={() => (emojiPickerOpen = !emojiPickerOpen)}
+          aria-label="Add emoji"
+          title="Add Emoji"
+          aria-pressed={emojiPickerOpen}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+          </svg>
+        </button>
+        {#if emojiPickerOpen}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="fixed inset-0 z-40" onclick={() => (emojiPickerOpen = false)}></div>
+          <div class="absolute bottom-10 right-0 z-50">
+            <EmojiPicker
+              onselect={handleEmojiSelect}
+              onclose={() => (emojiPickerOpen = false)}
+            />
+          </div>
+        {/if}
+      </div>
 
       <!-- Send button -->
       <button

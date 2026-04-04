@@ -1,4 +1,4 @@
-import { handleAuthRoute } from './auth/routes';
+import { handleAuthRoute, handleAuthenticatedRoute } from './auth/routes';
 import { handleUserRoute } from './users/routes';
 import { handleRoleRoute } from './roles/routes';
 import { handleChannelRoute, handleCategoryRoute } from './channels/routes';
@@ -73,6 +73,19 @@ export async function handleRequest(req: Request): Promise<Response> {
   if (rateLimited) return addCors(rateLimited);
 
   const { userId } = auth;
+
+  // -------------------------------------------------------------------------
+  // Authenticated auth routes — /api/auth/claim-admin etc.
+  // -------------------------------------------------------------------------
+  if (path.startsWith('/api/auth')) {
+    try {
+      const result = await handleAuthenticatedRoute(req, path, userId);
+      if (result) return addCors(result);
+    } catch (err) {
+      console.error('[router] Authenticated auth route error:', err);
+      return addCors(error('Internal server error', 500));
+    }
+  }
 
   // -------------------------------------------------------------------------
   // Presence route — /api/presence

@@ -192,6 +192,8 @@ export interface SoundboardPlayingPayload {
   channelId: string;
   userId: string;
   clipName: string;
+  /** Duration of the clip in seconds. Used by clients to auto-clear the indicator. */
+  duration?: number;
 }
 
 export interface ReactionAddedPayload {

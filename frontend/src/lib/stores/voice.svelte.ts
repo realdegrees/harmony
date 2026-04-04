@@ -12,6 +12,7 @@ import type {
   VoiceNewProducerPayload,
   StreamStartedPayload,
   StreamStoppedPayload,
+  SoundboardPlayingPayload,
 } from '@harmony/shared/types/ws-events';
 
 const PREFS_KEY = 'harmony:audio-prefs';
@@ -50,6 +51,11 @@ class VoiceStore {
 
   // Set of userIds currently speaking
   speakingUsers = $state(new Set<string>());
+
+  // Map of userId → clip name for users currently playing a soundboard clip
+  soundboardPlayingUsers = $state(new Map<string, string>());
+  // Timers to auto-clear soundboard indicator after clip duration
+  private soundboardTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   // mediasoup session — one per voice channel connection
   private rtc: RtcSession | null = null;
@@ -169,6 +175,23 @@ class VoiceStore {
       );
     });
 
+    ws.on<SoundboardPlayingPayload>('soundboard:playing', (data) => {
+      const next = new Map(this.soundboardPlayingUsers);
+      next.set(data.userId, data.clipName);
+      this.soundboardPlayingUsers = next;
+      // Clear after clip duration + 500ms buffer, or 30s max fallback
+      if (this.soundboardTimers.has(data.userId)) {
+        clearTimeout(this.soundboardTimers.get(data.userId)!);
+      }
+      const clearAfter = data.duration != null ? data.duration * 1000 + 500 : 30_000;
+      this.soundboardTimers.set(data.userId, setTimeout(() => {
+        const m = new Map(this.soundboardPlayingUsers);
+        m.delete(data.userId);
+        this.soundboardPlayingUsers = m;
+        this.soundboardTimers.delete(data.userId);
+      }, clearAfter));
+    });
+
     ws.on<StreamStoppedPayload>('stream:stopped', (data) => {
       const existing = this.participants.get(data.channelId);
       if (!existing) return;
@@ -227,6 +250,11 @@ class VoiceStore {
     this.speakingWatchers.clear();
     this.speakingUsers = new Set();
 
+    // Clear soundboard timers
+    for (const t of this.soundboardTimers.values()) clearTimeout(t);
+    this.soundboardTimers.clear();
+    this.soundboardPlayingUsers = new Map();
+
     this.rtc?.dispose();
     this.rtc = null;
     this.remoteStreams = new Map();
@@ -251,12 +279,21 @@ class VoiceStore {
   }
 
   toggleMute(): void {
+    // If currently deafened, unmuting must also undeafen (can't be unmuted while deafened)
+    if (this.localDeafened && this.localMuted) {
+      this.localDeafened = false;
+      this.localMuted = false;
+      ws.send({ type: 'voice:deafen', data: { deafened: false } });
+      ws.send({ type: 'voice:mute', data: { muted: false } });
+      return;
+    }
     this.localMuted = !this.localMuted;
     ws.send({ type: 'voice:mute', data: { muted: this.localMuted } });
   }
 
   toggleDeafen(): void {
     this.localDeafened = !this.localDeafened;
+    // Deafening also mutes
     if (this.localDeafened && !this.localMuted) {
       this.localMuted = true;
       ws.send({ type: 'voice:mute', data: { muted: true } });

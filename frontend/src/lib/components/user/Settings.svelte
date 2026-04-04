@@ -35,6 +35,25 @@
   let confirmPassword = $state('');
   let passwordError = $state('');
 
+  // Admin token claim
+  let adminToken = $state('');
+  let adminClaimStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+  let adminClaimError = $state('');
+
+  async function claimAdmin() {
+    if (!adminToken.trim()) return;
+    adminClaimStatus = 'loading';
+    adminClaimError = '';
+    try {
+      await api.post('/auth/claim-admin', { token: adminToken.trim() });
+      adminClaimStatus = 'success';
+      adminToken = '';
+    } catch (err) {
+      adminClaimStatus = 'error';
+      adminClaimError = err instanceof Error ? err.message : 'Failed to claim admin.';
+    }
+  }
+
   // Notifications section
   let pushEnabled = $state(false);
   let soundEnabled = $state(true);
@@ -469,7 +488,52 @@
           </div>
         </div>
 
-        <div class="mt-8 pt-6 border-t border-divider">
+        <!-- Admin Token -->
+        <div class="mt-8 pt-6 border-t border-white/[0.07]">
+          <h2 class="text-lg font-semibold text-text-primary mb-1">Claim Admin Privileges</h2>
+          <p class="text-sm text-text-muted mb-4">
+            Enter the admin token printed in the server console logs at startup.
+            This grants your account full administrator access.
+          </p>
+
+          {#if adminClaimStatus === 'success'}
+            <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm mb-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              </svg>
+              Admin privileges granted. Restart or re-login for full effect.
+            </div>
+          {/if}
+
+          {#if adminClaimStatus === 'error'}
+            <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm mb-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+              {adminClaimError}
+            </div>
+          {/if}
+
+          <div class="flex gap-2">
+            <Input
+              placeholder="Paste admin token here"
+              bind:value={adminToken}
+              class="flex-1"
+              onkeydown={(e) => { if (e.key === 'Enter') claimAdmin(); }}
+            />
+            <Button
+              variant="primary"
+              size="md"
+              loading={adminClaimStatus === 'loading'}
+              disabled={!adminToken.trim() || adminClaimStatus === 'loading'}
+              onclick={claimAdmin}
+            >
+              Claim Admin
+            </Button>
+          </div>
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-white/[0.07]">
           <h2 class="text-lg font-semibold text-danger mb-2">Danger Zone</h2>
           <p class="text-sm text-text-muted mb-3">Once you delete your account, there is no going back.</p>
           <Button variant="danger" size="sm" onclick={() => {}}>Delete Account</Button>

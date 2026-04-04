@@ -9,7 +9,6 @@
   import type { ChannelWithUnread } from '@harmony/shared/types/channel';
   import type { VoiceParticipant } from '@harmony/shared/types/voice';
   import { presence } from '$lib/stores/presence.svelte';
-  import { voice } from '$lib/stores/voice.svelte';
 
   interface Props {
     items: ChannelWithUnread[];
@@ -107,6 +106,25 @@
               {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
             </span>
           {/if}
+
+          <!-- Voice channel: text-only button (view chat without joining voice) -->
+          {#if type === ChannelType.VOICE}
+            <button
+              class="shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all duration-100
+                     text-text-muted hover:text-text-primary hover:bg-white/[0.12]"
+              title="View text chat (no voice)"
+              aria-label="View text chat for {channel.name} without joining voice"
+              onclick={(e) => {
+                e.stopPropagation();
+                channels.setActiveChannel(channel.id);
+                goto(`/channels/${channel.id}`);
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </button>
+          {/if}
         </button>
 
         <!-- Voice channel participants -->
@@ -115,8 +133,14 @@
             {#each participants as p (p.userId)}
               {@const vs = p.voiceState}
               {@const speaking = voice.speakingUsers.has(p.userId)}
+              {@const playingClip = voice.soundboardPlayingUsers.get(p.userId)}
               <li class="flex items-center gap-1 px-2 py-0.5 text-xs text-text-muted">
-                <div class="rounded-full {speaking ? 'ring-1 ring-success/70' : ''}">
+                <div class="rounded-full
+                  {speaking
+                    ? 'ring-1 ring-success/70'
+                    : playingClip
+                      ? 'ring-1 ring-info/70'
+                      : ''}">
                   <Avatar
                     src={p.user?.avatarPath ?? null}
                     username={p.user?.displayName || p.user?.username || p.userId}
@@ -127,13 +151,14 @@
                 <span class="truncate flex-1">{p.user?.displayName || p.user?.username || p.userId}</span>
                 <span class="flex items-center gap-0.5 shrink-0">
                   {#if vs?.muted || vs?.serverMuted}
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" class="{vs.serverMuted ? 'text-danger' : 'text-text-muted'}" aria-label="Muted">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" class="text-danger" aria-label="Muted">
                       <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
                     </svg>
                   {/if}
                   {#if vs?.deafened || vs?.serverDeafened}
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" class="{vs.serverDeafened ? 'text-danger' : 'text-text-muted'}" aria-label="Deafened">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" class="text-danger" aria-label="Deafened">
                       <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/>
+                      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                   {/if}
                   {#if vs?.streaming}

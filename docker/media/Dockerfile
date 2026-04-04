@@ -15,20 +15,24 @@ RUN apt-get update && \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package manifest first for layer caching
+# Copy package manifest and tsconfig first for layer caching
 COPY media/package.json ./
 COPY media/package-lock.json* ./
+COPY media/tsconfig.json ./
 
-# Install Node dependencies (mediasoup will compile its C++ worker here)
-# Using npm ci for reproducible installs; fall back to npm install if no lockfile
+# Install ALL deps including devDependencies (tsx, typescript) so we can
+# both compile and run TypeScript. mediasoup's C++ worker is also compiled here.
 RUN if [ -f package-lock.json ]; then \
-        npm ci --omit=dev; \
+        npm ci; \
     else \
-        npm install --omit=dev; \
+        npm install; \
     fi
 
 # Copy media server source
 COPY media/src ./src
+
+# Compile TypeScript → dist/ using the project's own tsconfig
+RUN node_modules/.bin/tsc --project tsconfig.json
 
 # Create a non-root user for security
 RUN groupadd -g 1001 harmony && \
@@ -44,6 +48,6 @@ EXPOSE 3001
 EXPOSE 40000-40100/udp
 EXPOSE 40000-40100/tcp
 
-# Entry point - supports both JS and TS (tsx) entry points
-# Prefer index.js; fall back to tsx for TypeScript projects
-CMD ["node", "src/index.js"]
+# Production: run compiled JS
+# Dev: docker-compose.dev.yml overrides this with tsx for hot reload
+CMD ["node", "dist/index.js"]

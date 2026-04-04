@@ -102,9 +102,7 @@
     {/if}
   </div>
 
-  <!-- Member list (only for text channels; voice has its own participant cards) -->
-  {#if !isVoice}
-    <MemberList {members} />
-  {/if}
+  <!-- Member list (shown for all channel types) -->
+  <MemberList {members} />
 </div>
 

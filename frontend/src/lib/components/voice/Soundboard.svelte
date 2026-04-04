@@ -21,6 +21,22 @@
   let isDragging = $state(false);
   let playingId = $state<string | null>(null);
 
+  // Reference to the currently playing Audio node so we can stop it
+  let currentAudio: HTMLAudioElement | null = null;
+
+  function stopCurrentClip() {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+    }
+    if (playingId !== null) {
+      // Tell the server to stop the current clip for all listeners
+      ws.send({ type: 'soundboard:play', data: { clipId: '__stop__' } });
+      playingId = null;
+    }
+  }
+
   const filteredServerClips = $derived(
     serverClips.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -51,25 +67,35 @@
   });
 
   function playServerClip(clip: SoundClip) {
+    // Stop any currently playing clip first
+    if (playingId === clip.id) { stopCurrentClip(); return; }
+    stopCurrentClip();
+
     playingId = clip.id;
-    ws.send({ type: 'soundboard:play', data: { clipId: clip.id } });
+    ws.send({ type: 'soundboard:play', data: { clipId: clip.id, duration: clip.duration } });
     setTimeout(() => { if (playingId === clip.id) playingId = null; }, (clip.duration * 1000) + 500);
   }
 
   async function playLocalClip(sound: LocalSound) {
+    // Stop any currently playing clip first
+    if (playingId === sound.id) { stopCurrentClip(); return; }
+    stopCurrentClip();
+
     playingId = sound.id;
     const url = URL.createObjectURL(sound.blob);
     const audio = new Audio(url);
+    currentAudio = audio;
     audio.onended = () => {
       URL.revokeObjectURL(url);
+      if (currentAudio === audio) currentAudio = null;
       if (playingId === sound.id) playingId = null;
     };
 
-    // Also send to voice channel as base64
+    // Send to voice channel as base64 so others hear it
     const reader = new FileReader();
     reader.onload = () => {
       const b64 = (reader.result as string).split(',')[1];
-      ws.send({ type: 'soundboard:play', data: { clipId: sound.id, clipData: b64 } });
+      ws.send({ type: 'soundboard:play', data: { clipId: sound.id, clipData: b64, duration: sound.duration } });
     };
     reader.readAsDataURL(sound.blob);
     await audio.play();

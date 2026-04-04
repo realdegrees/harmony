@@ -102,6 +102,11 @@ export async function getDefaultRole(): Promise<Role | null> {
   return role ? sanitizeRole(role) : null;
 }
 
+export async function getAdminRole(): Promise<Role | null> {
+  const role = await db.role.findFirst({ where: { name: 'Admin' } });
+  return role ? sanitizeRole(role) : null;
+}
+
 /**
  * Creates the Admin and Member roles if they do not already exist.
  * Intended to be called once at application startup.

@@ -96,14 +96,15 @@
 
 <div
   class="
-    flex flex-col w-80 h-full bg-bg-secondary border-l border-divider
+    flex flex-col w-80 h-full
+    bg-white/[0.06] backdrop-blur-2xl border-l border-white/[0.08]
     animate-[slideInRight_0.2s_ease-out]
   "
   role="complementary"
   aria-label="Search results"
 >
   <!-- Header -->
-  <div class="flex items-center justify-between px-3 py-3 border-b border-divider shrink-0">
+  <div class="flex items-center justify-between px-3 py-3 border-b border-white/[0.07] shrink-0">
     <div>
       <h2 class="text-base font-semibold text-text-primary">Search Results</h2>
       {#if !isLoading && messages.length > 0}
@@ -114,7 +115,7 @@
     </div>
     <button
       onclick={onclose}
-      class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+      class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-all duration-100"
       aria-label="Close search results"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -125,7 +126,7 @@
 
   <!-- Active filters display -->
   {#if filters.query || filters.authorId || filters.channelId || filters.hasImage || filters.hasLink || filters.hasAttachment}
-    <div class="px-3 py-2 border-b border-divider flex flex-wrap gap-1 shrink-0">
+    <div class="px-3 py-2 border-b border-white/[0.07] flex flex-wrap gap-1 shrink-0">
       {#if filters.query}
         <span class="px-2 py-0.5 rounded-sm bg-brand/20 text-brand text-xs">"{filters.query}"</span>
       {/if}

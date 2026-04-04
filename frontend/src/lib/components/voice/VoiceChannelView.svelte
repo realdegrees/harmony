@@ -2,6 +2,7 @@
   import { voice } from '$lib/stores/voice.svelte';
   import { auth } from '$lib/stores/auth.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
+  import StreamView from '$lib/components/voice/StreamView.svelte';
   import type { VoiceParticipant } from '@harmony/shared/types/voice';
 
   interface Props {
@@ -14,42 +15,34 @@
   const participants = $derived(voice.participants.get(channelId) ?? []);
   const inThisChannel = $derived(voice.currentChannelId === channelId);
   const speakingUsers = $derived(voice.speakingUsers);
+  const soundboardPlayingUsers = $derived(voice.soundboardPlayingUsers);
 
-  let focusedUserId = $state<string | null>(null);
-
-  const focusedParticipant = $derived(
-    focusedUserId ? participants.find(p => p.userId === focusedUserId) ?? null : null
+  // Build the StreamEntry array for StreamView — one entry per streaming participant.
+  // Local user's own stream comes from voice.activeStream; everyone else from remoteStreams.
+  const streamEntries = $derived(
+    participants
+      .filter(p => p.voiceState?.streaming)
+      .flatMap(p => {
+        const stream = p.userId === auth.user?.id
+          ? (voice as unknown as { activeStream: MediaStream | null }).activeStream
+          : voice.remoteStreams.get(p.userId) ?? null;
+        if (!stream) return [];
+        return [{ participant: p, stream }];
+      })
   );
 
-  // The MediaStream to display in the focus view.
-  // If it's the local user's own stream, use voice.activeStream directly.
-  // Otherwise use the remote stream from the RTC consumer map.
-  const focusedStream = $derived((): MediaStream | null => {
-    if (!focusedUserId) return null;
-    if (focusedUserId === auth.user?.id) {
-      return (voice as unknown as { activeStream: MediaStream | null }).activeStream;
-    }
-    return voice.remoteStreams.get(focusedUserId) ?? null;
-  });
+  // Whether to show the StreamView panel (at least one stream has a MediaStream)
+  const hasStreams = $derived(streamEntries.length > 0);
 
-  // Video element binding — set srcObject whenever the stream or element changes
-  let videoEl = $state<HTMLVideoElement | null>(null);
+  // Also auto-show the stream panel when someone starts streaming even if
+  // we haven't received the MediaStream yet (shows connecting state).
+  const anyoneStreaming = $derived(participants.some(p => p.voiceState?.streaming));
 
+  let streamViewOpen = $state(true);
+
+  // Re-open panel whenever a new stream starts
   $effect(() => {
-    if (videoEl) {
-      videoEl.srcObject = focusedStream() ?? null;
-    }
-  });
-
-  $effect(() => {
-    const streaming = participants.find(p => p.voiceState?.streaming);
-    if (!focusedUserId && streaming) {
-      focusedUserId = streaming.userId;
-    }
-    if (focusedUserId) {
-      const p = participants.find(p => p.userId === focusedUserId);
-      if (!p?.voiceState?.streaming) focusedUserId = null;
-    }
+    if (anyoneStreaming) streamViewOpen = true;
   });
 
   function isMe(p: VoiceParticipant) {
@@ -57,7 +50,7 @@
   }
 </script>
 
-<div class="flex flex-col flex-1 min-h-0 bg-bg-primary overflow-hidden">
+<div class="flex flex-col flex-1 min-h-0 overflow-hidden">
 
   {#if !inThisChannel}
     <!-- Not connected -->
@@ -82,56 +75,40 @@
   {:else}
     <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
 
-      <!-- Focused stream view -->
-      {#if focusedParticipant}
-        <div class="flex flex-col flex-[0_0_auto] max-h-[50%] bg-black">
-          <!-- Stream header -->
-          <div class="flex items-center justify-between px-3 py-2 bg-black/60 gap-2">
-            <span class="text-sm font-semibold text-white">
-              {focusedParticipant.user.displayName || focusedParticipant.user.username}&rsquo;s screen
-            </span>
-            <button
-              class="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              onclick={() => focusedUserId = null}
-              aria-label="Close stream view"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-              </svg>
-            </button>
-          </div>
-          <!-- Video feed — srcObject is set reactively via $effect above -->
-          <div class="relative flex-1 flex items-center justify-center min-h-[160px] bg-black">
-            {#if focusedStream()}
-              <!-- svelte-ignore a11y_media_has_caption -->
-              <video
-                bind:this={videoEl}
-                autoplay
-                playsinline
-                class="w-full h-full object-contain"
-              ></video>
-            {:else}
-              <!-- Stream not yet received (consumer still setting up) -->
-              <div class="flex flex-col items-center gap-3 text-white/20 text-sm">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M21 3H3c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.11-.9-2-2-2zm0 14H3V5h18v12zm-5-6l-7 4V7z"/>
-                </svg>
-                <span>Connecting to stream…</span>
-              </div>
-            {/if}
-          </div>
+      <!-- Stream view — shown when at least one participant is streaming -->
+      {#if anyoneStreaming && streamViewOpen}
+        <div class="flex-[0_0_auto] max-h-[55%] min-h-[200px] flex flex-col overflow-hidden">
+          <StreamView
+            streams={streamEntries}
+            onclose={() => streamViewOpen = false}
+          />
         </div>
       {/if}
 
       <!-- Participant card grid -->
       <div class="grid gap-3 p-4 overflow-y-auto flex-1 content-start"
            style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">
+
+        <!-- Re-open streams button (shown when panel is closed but streams are active) -->
+        {#if anyoneStreaming && !streamViewOpen}
+          <button
+            class="col-span-full flex items-center gap-2 px-3 py-2 mb-1 rounded-xl
+                   bg-brand/10 border border-brand/25 text-brand text-xs font-semibold
+                   hover:bg-brand/15 transition-all duration-100"
+            onclick={() => streamViewOpen = true}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M21 3H3c-1.11 0-2 .89-2 2v12c0 1.1.89 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.11-.9-2-2-2zm0 14H3V5h18v12zm-5-6l-7 4V7z"/>
+            </svg>
+            Show live streams ({streamEntries.length})
+          </button>
+        {/if}
+
         {#each participants as p (p.userId)}
           {@const vs = p.voiceState}
           {@const me = isMe(p)}
           {@const speaking = speakingUsers.has(p.userId)}
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          {@const playingClip = soundboardPlayingUsers.get(p.userId)}
           <div
             class="flex flex-col items-center gap-2 pt-3.5 pb-2.5 px-2 rounded-2xl
                    bg-white/[0.05] backdrop-blur-sm
@@ -139,18 +116,19 @@
                    {speaking
                      ? 'border-success/60 shadow-[0_0_20px_rgba(47,182,122,0.2)]'
                      : vs?.streaming
-                       ? 'border-brand/60 cursor-pointer hover:bg-white/[0.08] shadow-[0_0_16px_rgba(92,110,240,0.15)]'
+                       ? 'border-brand/60 shadow-[0_0_16px_rgba(92,110,240,0.15)]'
                        : me
                          ? 'border-white/[0.12]'
-                         : 'border-white/[0.06] hover:border-white/[0.10]'}"
-            onclick={() => { if (vs?.streaming) focusedUserId = p.userId; }}
-            role={vs?.streaming ? 'button' : undefined}
-            title={vs?.streaming ? `View ${p.user.displayName || p.user.username}'s screen` : undefined}
+                         : 'border-white/[0.06]'}"
           >
-            <!-- Avatar + speaking ring + LIVE badge -->
+            <!-- Avatar + speaking/soundboard ring + LIVE badge -->
             <div class="relative">
               <div class="rounded-full transition-all duration-150
-                {speaking ? 'ring-2 ring-success ring-offset-2 ring-offset-transparent shadow-[0_0_16px_rgba(47,182,122,0.5)]' : ''}">
+                {speaking
+                  ? 'ring-2 ring-success ring-offset-2 ring-offset-transparent shadow-[0_0_16px_rgba(47,182,122,0.5)]'
+                  : playingClip
+                    ? 'ring-2 ring-info ring-offset-2 ring-offset-transparent shadow-[0_0_16px_rgba(74,158,255,0.5)]'
+                    : ''}">
                 <Avatar
                   src={p.user.avatarPath}
                   username={p.user.displayName || p.user.username}
@@ -159,6 +137,8 @@
               </div>
               {#if speaking}
                 <span class="absolute inset-0 rounded-full ring-2 ring-success/40 animate-ping pointer-events-none" aria-hidden="true"></span>
+              {:else if playingClip}
+                <span class="absolute inset-0 rounded-full ring-2 ring-info/40 animate-ping pointer-events-none" aria-hidden="true"></span>
               {/if}
               {#if vs?.streaming}
                 <span class="absolute -bottom-1 left-1/2 -translate-x-1/2
