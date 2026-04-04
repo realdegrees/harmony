@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="112" ry="112" fill="#5865F2"/>
+
+  <!--
+    Stylised H mark:
+    - Two legs lean inward (tops closer together than bottoms)
+    - Crossbar is a smooth downward-drooping cubic bezier
+    - Stroke ends don't touch the crossbar — there's a gap
+    - All strokes: white, rounded linecap, no fill
+  -->
+  <g fill="none" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left leg: leans inward (top closer to center than bottom) -->
+    <line x1="175" y1="112" x2="145" y2="390"/>
+
+    <!-- Right leg: mirrored -->
+    <line x1="337" y1="112" x2="367" y2="390"/>
+
+    <!--
+      Drooping crossbar: smooth downward arc connecting the legs
+      without touching them — gap maintained at both ends
+    -->
+    <path d="M 200 245 C 218 340, 294 340, 312 245"/>
+  </g>
+</svg>
