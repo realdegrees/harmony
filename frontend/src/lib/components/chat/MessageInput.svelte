@@ -215,7 +215,7 @@
     <Tooltip text="Send a GIF" position="top">
       <div class="relative shrink-0">
         <button
-          class="p-1.5 rounded-lg transition-all duration-100 text-xs font-bold leading-none
+          class="inline-flex items-center justify-center h-[30px] px-1.5 rounded-lg transition-all duration-100 text-xs font-bold
             {gifPickerOpen
               ? 'text-text-primary bg-white/[0.12]'
               : 'text-text-muted hover:text-text-primary hover:bg-white/[0.08]'}"
@@ -270,7 +270,7 @@
       {/if}
 
       <!-- Emoji button + picker -->
-      <div class="relative">
+      <div class="relative flex items-center">
         <Tooltip text="Add Emoji" position="top">
           <button
             class="p-1.5 rounded-lg transition-all duration-100

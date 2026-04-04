@@ -74,8 +74,8 @@
       <!-- Channel icon: speaker for voice, hash for text -->
       {#if channel.type === ChannelType.VOICE}
         <svg
-          width="20"
-          height="20"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="currentColor"
           class="text-channel-icon shrink-0"
@@ -85,8 +85,8 @@
         </svg>
       {:else}
         <svg
-          width="20"
-          height="20"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
