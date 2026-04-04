@@ -1,0 +1,35 @@
+{
+  "name": "@harmony/backend",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "lint": "eslint src/ --ext .ts && tsc --noEmit",
+    "start": "bun run src/index.ts",
+    "prisma": "bunx prisma",
+    "db:migrate": "bunx prisma migrate dev",
+    "db:generate": "bunx prisma generate",
+    "db:seed": "bun run prisma/seed.ts",
+    "db:push": "bunx prisma db push"
+  },
+  "dependencies": {
+    "@harmony/shared": "workspace:*",
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "pg": "^8.13.0",
+    "jose": "^6.0.0",
+    "ioredis": "^5.4.0",
+    "zod": "^3.23.0",
+    "web-push": "^3.6.0",
+    "mime-types": "^2.1.35"
+  },
+  "devDependencies": {
+    "prisma": "^7.6.0",
+    "@types/pg": "^8.11.0",
+    "@types/web-push": "^3.6.0",
+    "@types/mime-types": "^2.1.4",
+    "typescript": "^5.7.0"
+  }
+}

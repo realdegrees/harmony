@@ -1,0 +1,22 @@
+{
+  "name": "harmony",
+  "private": true,
+  "workspaces": ["shared", "backend", "frontend", "media", "desktop"],
+  "scripts": {
+    "dev": "docker compose -f docker/docker-compose.dev.yml up",
+    "dev:frontend": "bun --filter @harmony/frontend dev",
+    "dev:backend": "bun --filter @harmony/backend dev",
+    "build": "bun run build:shared && bun run build:frontend && bun run build:backend",
+    "build:shared": "bun --filter @harmony/shared build",
+    "build:frontend": "bun --filter @harmony/frontend build",
+    "build:backend": "bun --filter @harmony/backend build",
+    "build:desktop": "bun run build:shared && bun --filter @harmony/frontend build:static && bun --filter @harmony/desktop build",
+    "lint": "bun run lint:shared && bun run lint:backend && bun run lint:frontend",
+    "lint:shared": "bun --filter @harmony/shared lint",
+    "lint:backend": "bun --filter @harmony/backend lint",
+    "lint:frontend": "bun --filter @harmony/frontend lint",
+    "db:migrate": "bun --filter @harmony/backend prisma migrate dev",
+    "db:generate": "bun --filter @harmony/backend prisma generate",
+    "db:seed": "bun --filter @harmony/backend db:seed"
+  }
+}

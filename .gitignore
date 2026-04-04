@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# SvelteKit
+.svelte-kit/
+
+# Generated files
+generated/
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+# .env.example is intentionally NOT ignored
+
+# Uploads / user content
+uploads/
+
+# Rust / Tauri
+target/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Bun
+# bun.lockb is tracked for reproducible installs

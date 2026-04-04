@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  APPEAR_OFFLINE
+  BUSY
+}
+
+enum ChannelType {
+  TEXT
+  VOICE
+  DM
+}
+
+enum PermissionTargetType {
+  ROLE
+  USER
+}
+
+enum AssetScope {
+  SERVER
+  USER
+}
+
+enum NotificationType {
+  MENTION
+  DM
+  CHANNEL_MESSAGE
+}
+
+model User {
+  id           String     @id @default(uuid())
+  username     String     @unique
+  displayName  String
+  passwordHash String
+  avatarPath   String?
+  status       UserStatus @default(ONLINE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  roles         UserRole[]
+  messages      Message[]
+  reactions     Reaction[]
+  notifications Notification[]
+  pushSubscriptions PushSubscription[]
+  favoriteGifs  FavoriteGif[]
+  uploadedEmojis CustomEmoji[]
+  uploadedSounds SoundClip[]
+  channelReadStates ChannelReadState[]
+
+  dm1 DirectMessage[] @relation("dm_user1")
+  dm2 DirectMessage[] @relation("dm_user2")
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  color       String?
+  position    Int      @default(0)
+  permissions BigInt   @default(0)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users     UserRole[]
+  overrides ChannelPermissionOverride[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model Channel {
+  id        String      @id @default(uuid())
+  name      String
+  type      ChannelType
+  topic     String?
+  position  Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  messages    Message[]
+  overrides   ChannelPermissionOverride[]
+  readStates  ChannelReadState[]
+  dm          DirectMessage?
+  notifications Notification[]
+
+  @@map("channels")
+}
+
+model ChannelPermissionOverride {
+  id         String               @id @default(uuid())
+  channelId  String
+  targetType PermissionTargetType
+  targetId   String
+  allow      BigInt               @default(0)
+  deny       BigInt               @default(0)
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  role    Role?   @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, targetType, targetId])
+  @@map("channel_permission_overrides")
+}
+
+model DirectMessage {
+  id        String @id @default(uuid())
+  user1Id   String
+  user2Id   String
+  channelId String @unique
+
+  user1   User    @relation("dm_user1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2   User    @relation("dm_user2", fields: [user2Id], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([user1Id, user2Id])
+  @@map("direct_messages")
+}
+
+model Message {
+  id        String    @id @default(uuid())
+  channelId String
+  authorId  String
+  content   String
+  replyToId String?
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  channel     Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replyTo     Message?     @relation("message_replies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies     Message[]    @relation("message_replies")
+  attachments Attachment[]
+  reactions   Reaction[]
+
+  @@index([channelId, createdAt])
+  @@index([authorId])
+  @@map("messages")
+}
+
+model Attachment {
+  id        String @id @default(uuid())
+  messageId String
+  filename  String
+  path      String
+  mimeType  String
+  size      Int
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+model Reaction {
+  id           String  @id @default(uuid())
+  messageId    String
+  userId       String
+  emojiId      String?
+  emojiUnicode String?
+
+  message Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji   CustomEmoji? @relation(fields: [emojiId], references: [id], onDelete: SetNull)
+
+  @@unique([messageId, userId, emojiId, emojiUnicode])
+  @@map("reactions")
+}
+
+model CustomEmoji {
+  id           String     @id @default(uuid())
+  name         String
+  path         String
+  uploadedById String
+  scope        AssetScope
+  userId       String?
+  createdAt    DateTime   @default(now())
+
+  uploadedBy User       @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  reactions  Reaction[]
+
+  @@map("custom_emojis")
+}
+
+model SoundClip {
+  id           String     @id @default(uuid())
+  name         String
+  path         String
+  uploadedById String
+  scope        AssetScope
+  userId       String?
+  duration     Float
+  createdAt    DateTime   @default(now())
+
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@map("sound_clips")
+}
+
+model ChannelReadState {
+  userId            String
+  channelId         String
+  lastReadMessageId String?
+  lastReadAt        DateTime?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@id([userId, channelId])
+  @@map("channel_read_states")
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  type        NotificationType
+  referenceId String
+  channelId   String?
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, channelId])
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id       String @id @default(uuid())
+  userId   String
+  endpoint String @unique
+  p256dh   String
+  auth     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+}
+
+model FavoriteGif {
+  id         String   @id @default(uuid())
+  userId     String
+  giphyId    String
+  url        String
+  previewUrl String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, giphyId])
+  @@map("favorite_gifs")
+}

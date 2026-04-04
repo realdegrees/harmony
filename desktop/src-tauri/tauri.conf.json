@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicoschmdt/tauri/v2/packages/cli/schema.json",
+  "productName": "Harmony",
+  "version": "0.0.1",
+  "identifier": "com.harmony.app",
+  "build": {
+    "frontendDist": "../../frontend/build",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "bun --filter @harmony/frontend dev",
+    "beforeBuildCommand": "bun run build:shared && bun --filter @harmony/frontend build:static"
+  },
+  "app": {
+    "title": "Harmony",
+    "windows": [
+      {
+        "title": "Harmony",
+        "width": 1280,
+        "height": 720,
+        "resizable": true,
+        "fullscreen": false,
+        "minWidth": 940,
+        "minHeight": 560
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
