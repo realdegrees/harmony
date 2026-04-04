@@ -2,6 +2,8 @@
   import { goto } from '$app/navigation';
   import { auth } from '$lib/stores/auth.svelte';
   import { api } from '$lib/api/client';
+  import { voice } from '$lib/stores/voice.svelte';
+  import { getAudioInputDevices, getAudioOutputDevices } from '$lib/voice/streaming';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
@@ -37,6 +39,14 @@
   let pushEnabled = $state(false);
   let soundEnabled = $state(true);
 
+  // Voice & Audio section
+  let micDevices = $state<MediaDeviceInfo[]>([]);
+  let speakerDevices = $state<MediaDeviceInfo[]>([]);
+  let audioDevicesError = $state('');
+  let testingMic = $state(false);
+  let micTestLevel = $state(0);
+  let micTestInterval: ReturnType<typeof setInterval> | null = null;
+
   $effect(() => {
     if (auth.user) {
       displayName = auth.user.displayName;
@@ -51,6 +61,141 @@
       }
     } catch {}
   });
+
+  // Load audio devices when the voice section becomes active
+  $effect(() => {
+    if (activeSection === 'voice') {
+      loadAudioDevices();
+    } else {
+      stopMicTest();
+    }
+  });
+
+  async function loadAudioDevices() {
+    audioDevicesError = '';
+    micDevices = [];
+    speakerDevices = [];
+
+    // We must get a real stream first — without it, Chrome returns devices with
+    // empty labels and empty deviceIds (privacy protection). Stop the stream
+    // immediately after; we only needed the permission grant.
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err: unknown) {
+      const name = (err as { name?: string }).name;
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        audioDevicesError =
+          'Microphone access was denied. Click the lock/camera icon in your address bar, allow the microphone, then come back here.';
+      } else if (name === 'NotFoundError') {
+        audioDevicesError = 'No microphone found. Connect a microphone and try again.';
+      } else {
+        audioDevicesError = 'Could not access microphone. Make sure no other application has it locked.';
+      }
+      return;
+    }
+    stream.getTracks().forEach(t => t.stop());
+
+    const [inputs, outputs] = await Promise.all([
+      getAudioInputDevices(),
+      getAudioOutputDevices(),
+    ]);
+
+    // Filter out the "default" alias Chrome adds — it duplicates the real device.
+    // Keep it only if there are no other options.
+    const filterDefault = (list: MediaDeviceInfo[]) =>
+      list.filter(d => d.deviceId !== 'default').length > 0
+        ? list.filter(d => d.deviceId !== 'default')
+        : list;
+
+    micDevices = filterDefault(inputs);
+    speakerDevices = filterDefault(outputs);
+  }
+
+  function stopMicTest() {
+    if (micTestInterval) { clearInterval(micTestInterval); micTestInterval = null; }
+    testingMic = false;
+    micTestLevel = 0;
+  }
+
+  async function toggleMicTest() {
+    if (testingMic) { stopMicTest(); return; }
+    testingMic = true;
+    micTestLevel = 0;
+    audioDevicesError = '';
+    try {
+      const constraints: MediaStreamConstraints = {
+        audio: voice.preferredMicrophoneId
+          ? { deviceId: { exact: voice.preferredMicrophoneId } }
+          : true,
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const ctx = new AudioContext();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      src.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+
+      micTestInterval = setInterval(() => {
+        if (!testingMic) {
+          stream.getTracks().forEach(t => t.stop());
+          ctx.close();
+          return;
+        }
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (const v of data) sum += v * v;
+        micTestLevel = Math.min(Math.sqrt(sum / data.length) / 128, 1);
+      }, 50);
+    } catch (err: unknown) {
+      testingMic = false;
+      const name = (err as { name?: string }).name;
+      audioDevicesError = name === 'NotAllowedError'
+        ? 'Microphone access denied. Check your browser permissions.'
+        : 'Could not open microphone for test.';
+    }
+  }
+
+  async function testSpeaker() {
+    // Generate a short 440 Hz beep as a WAV data URI and play it through
+    // the selected output device via setSinkId (Chrome/Edge).
+    try {
+      // Build a minimal PCM WAV in memory: 44100 Hz, mono, 16-bit, 0.4 s
+      const sampleRate = 44_100;
+      const duration = 0.4;
+      const numSamples = Math.floor(sampleRate * duration);
+      const buffer = new ArrayBuffer(44 + numSamples * 2);
+      const view = new DataView(buffer);
+      const writeStr = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+      writeStr(0, 'RIFF'); view.setUint32(4, 36 + numSamples * 2, true);
+      writeStr(8, 'WAVE'); writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+      writeStr(36, 'data'); view.setUint32(40, numSamples * 2, true);
+      for (let i = 0; i < numSamples; i++) {
+        // 440 Hz sine wave with a short fade-out
+        const fade = 1 - i / numSamples;
+        view.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * 440 * i / sampleRate) * 0x7fff * 0.4 * fade), true);
+      }
+      const blob = new Blob([buffer], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+
+      const audio = new Audio(url);
+
+      // Route to selected output device if the browser supports setSinkId
+      const sinkId = voice.preferredSpeakerId;
+      if (sinkId && typeof (audio as HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> }).setSinkId === 'function') {
+        await (audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId(sinkId);
+      }
+
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+    } catch {
+      // Silently swallow — user-gesture timing issues can cause play() to throw
+    }
+  }
 
   function handleAvatarChange(e: Event) {
     const file = (e.currentTarget as HTMLInputElement).files?.[0];
@@ -344,12 +489,99 @@
       <!-- Voice & Audio Section -->
       {:else if activeSection === 'voice'}
         <h1 class="text-2xl font-bold text-text-primary mb-6">Voice & Audio</h1>
-        <div class="bg-bg-secondary rounded-xl p-6 text-center text-text-muted">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="mx-auto mb-3 opacity-30" aria-hidden="true">
-            <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
-          </svg>
-          <p class="font-medium">Device selection coming soon</p>
-          <p class="text-sm mt-1">Microphone and speaker device selection will be available here.</p>
+
+        {#if audioDevicesError}
+          <div class="mb-4 px-4 py-3 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm">
+            {audioDevicesError}
+          </div>
+        {/if}
+
+        <!-- Microphone -->
+        <div class="bg-bg-secondary rounded-xl p-5 mb-4 space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-text-muted">Microphone</h2>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="mic-select" class="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+              Input Device
+            </label>
+            <select
+              id="mic-select"
+              class="w-full rounded px-3 py-2 text-sm bg-bg-input text-text-primary border border-transparent focus:outline-none focus:border-brand transition-colors"
+              value={voice.preferredMicrophoneId ?? ''}
+              onchange={(e) => voice.setPreferredMicrophone((e.currentTarget as HTMLSelectElement).value || null)}
+            >
+              <option value="">System Default</option>
+              {#each micDevices as device (device.deviceId)}
+                <option value={device.deviceId}>
+                  {device.label || `Microphone ${device.deviceId.slice(0, 8)}`}
+                </option>
+              {/each}
+            </select>
+          </div>
+
+          <!-- Mic level + test button -->
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wide text-text-secondary">Input Level</span>
+              <Button
+                variant={testingMic ? 'danger' : 'secondary'}
+                size="sm"
+                onclick={toggleMicTest}
+              >
+                {testingMic ? 'Stop Test' : 'Test Mic'}
+              </Button>
+            </div>
+            <div class="h-2 rounded-full bg-bg-accent overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-75"
+                style="width: {micTestLevel * 100}%; background: {micTestLevel > 0.7 ? '#da373c' : micTestLevel > 0.4 ? '#f0b232' : '#23a559'};"
+              ></div>
+            </div>
+            {#if testingMic}
+              <p class="text-xs text-text-muted">Speak into your microphone — you should see the level bar move.</p>
+            {/if}
+          </div>
+        </div>
+
+        <!-- Speaker -->
+        <div class="bg-bg-secondary rounded-xl p-5 space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-text-muted">Speaker / Headphones</h2>
+
+          <div class="flex flex-col gap-1.5">
+            <label for="speaker-select" class="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+              Output Device
+            </label>
+            {#if !('setSinkId' in HTMLAudioElement.prototype)}
+              <p class="text-sm text-text-muted py-2">
+                Output device selection requires Chrome or Edge. Firefox always uses the system default output device.
+              </p>
+            {:else if speakerDevices.length === 0}
+              <p class="text-sm text-text-muted py-2">
+                No output devices found yet — grant microphone access above first, then output devices will appear here.
+              </p>
+            {:else}
+              <select
+                id="speaker-select"
+                class="w-full rounded px-3 py-2 text-sm bg-bg-input text-text-primary border border-transparent focus:outline-none focus:border-brand transition-colors"
+                value={voice.preferredSpeakerId ?? ''}
+                onchange={(e) => voice.setPreferredSpeaker((e.currentTarget as HTMLSelectElement).value || null)}
+              >
+                <option value="">System Default</option>
+                {#each speakerDevices as device (device.deviceId)}
+                  <option value={device.deviceId}>
+                    {device.label || `Speaker ${device.deviceId.slice(0, 8)}`}
+                  </option>
+                {/each}
+              </select>
+            {/if}
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wide text-text-secondary">Test Output</span>
+            <Button variant="secondary" size="sm" onclick={testSpeaker}>
+              Play Test Sound
+            </Button>
+          </div>
         </div>
 
       <!-- Notifications Section -->

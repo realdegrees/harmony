@@ -14,7 +14,8 @@ import {
 } from './server';
 import type { ServerWebSocket } from 'bun';
 import {
-  handleVoiceJoin,
+  joinVoiceRoom,
+  setupVoiceTransports,
   handleVoiceLeave,
   handleVoiceProduce,
   handleVoiceConsume,
@@ -301,19 +302,22 @@ export async function handleWsMessage(
           return;
         }
 
-        let joinResult;
+        // Phase 1: Join the room state. This is the critical step that makes
+        // the user visible in the channel. It must succeed before anything else.
         try {
-          joinResult = await handleVoiceJoin(userId, channelId);
+          await joinVoiceRoom(userId, channelId);
         } catch (err: unknown) {
           const e = err as { message?: string };
           sendError(ws, 'VOICE_JOIN_FAILED', e.message ?? 'Failed to join voice channel');
           return;
         }
 
-        // Subscribe this connection to the voice channel topic
+        // Subscribe this connection to the voice channel topic so the user
+        // receives broadcasts (mute/deafen state, other users joining, etc.)
         ws.subscribe(`channel:${channelId}`);
 
-        // Notify others in the channel that this user joined
+        // Broadcast to everyone (including the joiner) so all participants'
+        // UIs update immediately.
         const participants = await getVoiceChannelParticipants(channelId);
         const participant = participants.find((p) => p.userId === userId);
 
@@ -324,21 +328,32 @@ export async function handleWsMessage(
           });
         }
 
-        // Send transport info back to the joining user
-        sendToUser(userId, {
-          type: 'voice:transport-created',
-          data: {
-            direction: 'send',
-            transport: joinResult.sendTransport,
-          },
-        });
-        sendToUser(userId, {
-          type: 'voice:transport-created',
-          data: {
-            direction: 'recv',
-            transport: joinResult.recvTransport,
-          },
-        });
+        // Phase 2: Set up mediasoup transports. Failures here are non-fatal —
+        // the user is already visible in the channel; they just won't have audio
+        // until the media server is available.
+        const transportResult = await setupVoiceTransports(userId, channelId);
+
+        if (transportResult) {
+          sendToUser(userId, {
+            type: 'voice:transport-created',
+            data: {
+              direction: 'send',
+              transport: transportResult.sendTransport,
+              rtpCapabilities: transportResult.rtpCapabilities,
+            },
+          });
+          sendToUser(userId, {
+            type: 'voice:transport-created',
+            data: { direction: 'recv', transport: transportResult.recvTransport },
+          });
+        } else {
+          // Inform the client that audio is unavailable (media server down)
+          // but the join itself succeeded.
+          sendToUser(userId, {
+            type: 'voice:transport-created',
+            data: { direction: 'send', transport: null },
+          });
+        }
 
         break;
       }

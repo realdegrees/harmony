@@ -14,8 +14,8 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 
 // ---------------------------------------------------------------------------
-// Static file serving (used when running without nginx, e.g. local dev or
-// when pointing a Traefik/Caddy/other proxy directly at this container)
+// Static file serving — serves the frontend build when present in the container.
+// In production the built output is copied to frontend/build by the Dockerfile.
 // ---------------------------------------------------------------------------
 
 // Resolve the frontend build directory relative to this file.
@@ -118,7 +118,7 @@ async function main() {
         return handleRequest(req);
       }
 
-      // Static file serving (fallback when nginx is not in front)
+      // Static file serving
       const staticResponse = await serveStatic(url.pathname);
       if (staticResponse) return staticResponse;
 

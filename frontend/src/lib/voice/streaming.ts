@@ -211,3 +211,11 @@ export async function getAudioInputDevices(): Promise<MediaDeviceInfo[]> {
   const devices = await navigator.mediaDevices.enumerateDevices();
   return devices.filter(d => d.kind === 'audioinput');
 }
+
+/**
+ * Enumerate available audio output devices (speakers/headphones).
+ */
+export async function getAudioOutputDevices(): Promise<MediaDeviceInfo[]> {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter(d => d.kind === 'audiooutput');
+}

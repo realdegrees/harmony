@@ -3,6 +3,7 @@ import { serializePermissions } from '@harmony/shared/constants';
 import { getUserProfile, getAllUsers, updateUser } from './service';
 import { json, error } from '../utils/response';
 import { db } from '../db/client';
+import { getAllPresence } from '../ws/presence';
 
 // Serialize a UserProfile so that role permissions are JSON-safe strings.
 function serializeProfile(profile: Awaited<ReturnType<typeof getUserProfile>>) {
@@ -95,6 +96,16 @@ export async function handleUserRoute(
 ): Promise<Response | null> {
   const method = req.method.toUpperCase();
   const url = new URL(req.url);
+
+  // GET /api/presence — returns all currently online users and their status
+  if (path === '/api/presence' && method === 'GET') {
+    const presenceMap = await getAllPresence();
+    const result: Record<string, string> = {};
+    for (const [uid, status] of presenceMap) {
+      result[uid] = status;
+    }
+    return json(result);
+  }
 
   // GET /api/users
   if (path === '/api/users' && method === 'GET') {

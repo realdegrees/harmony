@@ -18,15 +18,24 @@
     voice.toggleDeafen();
   }
 
-  function handleToggleStream() {
+  let streamStarting = $state(false);
+
+  async function handleToggleStream() {
     if (voice.isStreaming) {
       voice.stopStream();
-    } else {
-      voice.startStream(StreamType.SCREEN, {
+      return;
+    }
+    streamStarting = true;
+    try {
+      await voice.startStream(StreamType.SCREEN, {
         type: StreamType.SCREEN,
-        maxBitrate: 2500000,
+        maxBitrate: 2_500_000,
         maxFramerate: 30,
       });
+    } catch {
+      // User cancelled the picker or permission denied — do nothing
+    } finally {
+      streamStarting = false;
     }
   }
 
@@ -117,13 +126,13 @@
         "
       >
         {#if voice.localDeafened}
-          <!-- Deafened headphones with slash -->
+          <!-- Deafened: headphones + diagonal slash -->
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h1v-8H4v-2c0-4.42 3.58-8 8-8s8 3.58 8 8v2h-3v8h1c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" opacity=".3"/>
-            <path d="M3 3L1.27 4.73 4.54 8H4v2h3v8H6c-1.66 0-3-1.34-3-3v-7c0-4.97 4.03-9 9-9 1.5 0 2.91.37 4.15 1.02L17.73 3.27C16.17 2.47 14.13 2 12 2c-4.97 0-9 4.03-9 9z"/>
-            <path d="M21 19.73L19.27 21l-5-5H14v-8h1.46L21 13.54V19.73z"/>
+            <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/>
+            <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         {:else}
+          <!-- Undeafened: plain headphones -->
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/>
           </svg>
@@ -134,12 +143,13 @@
       <!-- Screen Share -->
       <button
         onclick={handleToggleStream}
-        title={voice.isStreaming ? 'Stop Sharing' : 'Share Screen'}
+        disabled={streamStarting}
+        title={voice.isStreaming ? 'Stop Sharing' : streamStarting ? 'Waiting for screen…' : 'Share Screen'}
         aria-label={voice.isStreaming ? 'Stop screen sharing' : 'Share screen'}
         aria-pressed={voice.isStreaming}
         class="
           flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded
-          transition-colors duration-100
+          transition-colors duration-100 disabled:opacity-50 disabled:cursor-not-allowed
           {voice.isStreaming
             ? 'bg-brand/20 text-brand hover:bg-brand/30'
             : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'}

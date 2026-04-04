@@ -155,7 +155,9 @@ export interface VoiceStateUpdatePayload {
 
 export interface VoiceTransportCreatedPayload {
   direction: 'send' | 'recv';
-  transport: MediaServerTransport;
+  transport: MediaServerTransport | null;
+  /** Router RTP capabilities — only present on direction='send'. */
+  rtpCapabilities?: unknown;
 }
 
 export interface VoiceProducedPayload {

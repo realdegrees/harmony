@@ -42,6 +42,8 @@ services:
       NODE_ENV: development
       # Tell Vite to listen on all interfaces inside the container
       HOST: 0.0.0.0
+      # Single HTTP target for both REST and WS proxying (http-proxy handles upgrade internally)
+      API_PROXY_TARGET: http://harmony-app:3000
     ports:
       - "5173:5173"
     volumes:
@@ -64,8 +66,8 @@ services:
       NODE_ENV: development
     ports:
       - "3001:3001"
-      - "${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}:${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}/udp"
-      - "${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}:${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}/tcp"
+      - "48000-48100:48000-48100/udp"
+      - "48000-48100:48000-48100/tcp"
     volumes:
       # Mount source for hot reload (requires nodemon/tsx --watch or similar)
       - ../media/src:/app/src
@@ -102,20 +104,6 @@ services:
       - "8379:6379"
     volumes:
       - redisdata_dev:/data
-    restart: unless-stopped
-    networks:
-      - harmony-dev-net
-
-  # ── nginx (routes /api and /ws to app, everything else to Vite) ───────────────
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - harmony-app
-      - harmony-frontend
     restart: unless-stopped
     networks:
       - harmony-dev-net

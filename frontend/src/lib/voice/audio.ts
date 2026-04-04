@@ -14,11 +14,13 @@
 
 /**
  * Request access to the user's microphone and return a MediaStream.
+ * Pass a deviceId to select a specific microphone; omit for the system default.
  * Throws if permission is denied.
  */
-export async function getMicrophoneStream(): Promise<MediaStream> {
+export async function getMicrophoneStream(deviceId?: string): Promise<MediaStream> {
   return navigator.mediaDevices.getUserMedia({
     audio: {
+      ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,

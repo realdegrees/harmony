@@ -75,9 +75,9 @@ export async function handleRequest(req: Request): Promise<Response> {
   const { userId } = auth;
 
   // -------------------------------------------------------------------------
-  // User routes — /api/users/*
+  // Presence route — /api/presence
   // -------------------------------------------------------------------------
-  if (path.startsWith('/api/users')) {
+  if (path.startsWith('/api/presence') || path.startsWith('/api/users')) {
     try {
       const result = await handleUserRoute(req, path, userId);
       if (result) return addCors(result);

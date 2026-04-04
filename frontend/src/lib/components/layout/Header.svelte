@@ -7,6 +7,7 @@
   import type { ChannelWithUnread } from '@harmony/shared/types/channel';
   import type { User } from '@harmony/shared/types/user';
   import type { SearchFilters } from '@harmony/shared/types/message';
+  import { ChannelType } from '@harmony/shared/types/channel';
   import { presence } from '$lib/stores/presence.svelte';
 
   interface Props {
@@ -41,24 +42,37 @@
         </span>
       </div>
     {:else if channel}
-      <!-- Channel header -->
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="text-channel-icon shrink-0"
-        aria-hidden="true"
-      >
-        <line x1="4" y1="9" x2="20" y2="9"></line>
-        <line x1="4" y1="15" x2="20" y2="15"></line>
-        <line x1="10" y1="3" x2="8" y2="21"></line>
-        <line x1="16" y1="3" x2="14" y2="21"></line>
-      </svg>
+      <!-- Channel icon: speaker for voice, hash for text -->
+      {#if channel.type === ChannelType.VOICE}
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          class="text-channel-icon shrink-0"
+          aria-hidden="true"
+        >
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+      {:else}
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="text-channel-icon shrink-0"
+          aria-hidden="true"
+        >
+          <line x1="4" y1="9" x2="20" y2="9"></line>
+          <line x1="4" y1="15" x2="20" y2="15"></line>
+          <line x1="10" y1="3" x2="8" y2="21"></line>
+          <line x1="16" y1="3" x2="14" y2="21"></line>
+        </svg>
+      {/if}
       <span class="font-semibold text-text-primary text-sm">{channel.name}</span>
 
       {#if channel.topic}
@@ -132,9 +146,12 @@
   </div>
 </header>
 
-<!-- Search panel (slides in below header) -->
+<!-- Search panel — fixed so it escapes overflow:hidden on parent containers -->
 {#if searchOpen}
-  <div class="absolute right-0 top-full z-40 w-full max-w-md">
+  <div
+    class="fixed right-4 z-50 w-full max-w-md shadow-2xl"
+    style="top: var(--header-height);"
+  >
     <SearchBar
       onsearch={(filters) => { searchFilters = filters; }}
     />

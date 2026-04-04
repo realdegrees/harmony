@@ -1,5 +1,6 @@
 import { api } from '$lib/api/client';
 import { ws } from '$lib/api/ws';
+import { channels } from '$lib/stores/channels.svelte';
 import type { Message, PaginatedMessages } from '@harmony/shared/types/message';
 import type {
   MessageNewPayload,
@@ -25,6 +26,10 @@ class MessagesStore {
           ...existing,
           message,
         ]);
+      }
+      // Increment unread count if the message is not in the currently active channel
+      if (message.channelId !== channels.activeChannelId) {
+        channels.incrementUnread(message.channelId);
       }
     });
 

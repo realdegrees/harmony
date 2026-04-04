@@ -63,16 +63,29 @@ export function resolveApiUrl(path: string): string | null {
 /**
  * Resolves the WebSocket URL for the given server.
  *
- * - Browser: uses the current page's protocol/host to build the WS URL.
- * - Tauri: builds from the configured server URL, converting http→ws / https→wss.
+ * Priority order:
+ * 1. Tauri: builds from the user-configured server URL.
+ * 2. VITE_WS_URL env var: explicit WS base (used in dev to bypass Vite's
+ *    broken WS proxy and connect the browser directly to the backend).
+ * 3. Same-origin fallback: derives the URL from window.location (production,
+ *    where frontend and backend share the same host).
  */
 export function resolveWsUrl(path: string = '/ws'): string | null {
-  if (!isTauri()) {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}${path}`;
+  if (isTauri()) {
+    const base = getServerUrl();
+    if (!base) return null;
+    const wsBase = base.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
+    return `${wsBase}${path}`;
   }
-  const base = getServerUrl();
-  if (!base) return null;
-  const wsBase = base.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
-  return `${wsBase}${path}`;
+
+  // VITE_WS_URL lets dev environments point the browser directly at the
+  // backend WebSocket port, bypassing Vite's proxy entirely.
+  const explicit = import.meta.env.VITE_WS_URL as string | undefined;
+  if (explicit) {
+    return `${explicit.replace(/\/$/, '')}${path}`;
+  }
+
+  // Production / same-origin: frontend is served from the same host as the backend.
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}${path}`;
 }

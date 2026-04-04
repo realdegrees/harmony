@@ -5,6 +5,9 @@
   import { auth } from '$lib/stores/auth.svelte';
   import { channels } from '$lib/stores/channels.svelte';
   import { notifications } from '$lib/stores/notifications.svelte';
+  import { presence } from '$lib/stores/presence.svelte';
+  import { UserStatus } from '@harmony/shared/types/user';
+  import { api } from '$lib/api/client';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import { ui } from '$lib/stores/ui.svelte';
   import { isTauri, getServerUrl } from '$lib/utils/tauri';
@@ -17,6 +20,10 @@
   const isAuthRoute = $derived(authRoutes.some((r) => $page.url.pathname.startsWith(r)));
   const isConnectRoute = $derived($page.url.pathname.startsWith(connectRoute));
   const showAppShell = $derived(auth.isAuthenticated && !isAuthRoute && !isConnectRoute);
+
+  // Tracks whether the post-login data bootstrap has already been fired for
+  // the current session. Prevents re-running on every reactive update.
+  let bootstrapped = false;
 
   $effect(() => {
     // In Tauri, redirect to /connect if no server URL is configured yet
@@ -35,12 +42,28 @@
   });
 
   $effect(() => {
-    if (auth.isAuthenticated) {
+    if (auth.isAuthenticated && !bootstrapped) {
+      bootstrapped = true;
       channels.fetchChannels().catch(console.error);
       channels.fetchCategories().catch(console.error);
       channels.fetchDmChannels().catch(console.error);
       notifications.fetchNotifications().catch(console.error);
       notifications.fetchUnreadStates().catch(console.error);
+
+      // Seed the presence map with everyone currently online
+      api.get<Record<string, string>>('/presence').then((data) => {
+        presence.initializeBulk(
+          Object.entries(data).map(([userId, status]) => ({
+            userId,
+            status: status as UserStatus,
+          }))
+        );
+      }).catch(console.error);
+    }
+
+    // Reset the flag when the user logs out so the next login re-bootstraps
+    if (!auth.isAuthenticated) {
+      bootstrapped = false;
     }
   });
 

@@ -36,33 +36,61 @@ function getOrCreateUserTransports(userId: string): UserTransports {
   return entry;
 }
 
+/**
+ * Join a voice channel's room state.
+ * This always succeeds (barring DB errors) and is what makes the user
+ * visible to other participants. Media transport creation is separate.
+ */
+export async function joinVoiceRoom(
+  userId: string,
+  channelId: string,
+): Promise<void> {
+  await joinVoiceChannel(userId, channelId);
+}
+
+/**
+ * Set up mediasoup transports for a user already in a voice room.
+ * Returns null if the media server is unreachable — callers should
+ * treat this as a degraded (visible but no audio) state.
+ */
+export async function setupVoiceTransports(
+  userId: string,
+  channelId: string,
+): Promise<{ rtpCapabilities: unknown; sendTransport: unknown; recvTransport: unknown } | null> {
+  try {
+    const routerData = await mediaClient.createRouter(channelId) as {
+      rtpCapabilities: unknown;
+    };
+
+    const [sendTransport, recvTransport] = await Promise.all([
+      mediaClient.createTransport(channelId) as Promise<{ transportId: string } & Record<string, unknown>>,
+      mediaClient.createTransport(channelId) as Promise<{ transportId: string } & Record<string, unknown>>,
+    ]);
+
+    const entry = getOrCreateUserTransports(userId);
+    entry.sendTransportId = sendTransport.transportId;
+    entry.recvTransportId = recvTransport.transportId;
+
+    return {
+      rtpCapabilities: routerData.rtpCapabilities,
+      sendTransport,
+      recvTransport,
+    };
+  } catch (err) {
+    console.warn(`[voice] Media transport setup failed for user ${userId} in channel ${channelId}:`, err);
+    return null;
+  }
+}
+
+/** @deprecated Use joinVoiceRoom + setupVoiceTransports separately */
 export async function handleVoiceJoin(
   userId: string,
   channelId: string,
 ): Promise<{ rtpCapabilities: unknown; sendTransport: unknown; recvTransport: unknown }> {
-  // Join room state
-  await joinVoiceChannel(userId, channelId);
-
-  // Create or fetch the mediasoup router for this channel
-  const routerData = await mediaClient.createRouter(channelId) as {
-    rtpCapabilities: unknown;
-  };
-
-  // Create send and receive transports for this user
-  const [sendTransport, recvTransport] = await Promise.all([
-    mediaClient.createTransport(channelId) as Promise<{ transportId: string } & Record<string, unknown>>,
-    mediaClient.createTransport(channelId) as Promise<{ transportId: string } & Record<string, unknown>>,
-  ]);
-
-  const entry = getOrCreateUserTransports(userId);
-  entry.sendTransportId = sendTransport.transportId;
-  entry.recvTransportId = recvTransport.transportId;
-
-  return {
-    rtpCapabilities: routerData.rtpCapabilities,
-    sendTransport,
-    recvTransport,
-  };
+  await joinVoiceRoom(userId, channelId);
+  const result = await setupVoiceTransports(userId, channelId);
+  if (!result) throw new Error('Media server unavailable');
+  return result;
 }
 
 export async function handleVoiceLeave(userId: string): Promise<void> {
