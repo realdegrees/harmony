@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": ["shared", "backend", "frontend", "media", "desktop"],
   "scripts": {
-    "dev": "docker compose -f docker/docker-compose.yml up",
+    "dev": "docker compose -f docker/docker-compose.dev.yml up",
     "dev:frontend": "bun --filter @harmony/frontend dev",
     "dev:backend": "bun --filter @harmony/backend dev",
     "build": "bun run build:shared && bun run build:frontend:static && bun run build:media && bun run build:backend",
