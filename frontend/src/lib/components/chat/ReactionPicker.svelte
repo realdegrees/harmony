@@ -6,16 +6,16 @@
 
   interface Props {
     message: Message;
+    onclose?: () => void;
   }
 
-  let { message }: Props = $props();
+  let { message, onclose }: Props = $props();
 
   let showFullPicker = $state(false);
+  let fullPickerStyle = $state('');
 
-  // Quick reactions - most commonly used
   const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
 
-  // Also load frequently used from localStorage
   let frequentEmojis = $state<string[]>([]);
   $effect(() => {
     try {
@@ -30,34 +30,39 @@
   const displayEmojis = $derived([...QUICK_REACTIONS, ...frequentEmojis].slice(0, 6));
 
   function addReaction(unicode: string) {
-    ws.send({
-      type: 'reaction:add',
-      data: { messageId: message.id, emojiUnicode: unicode },
-    });
+    ws.send({ type: 'reaction:add', data: { messageId: message.id, emojiUnicode: unicode } });
+    onclose?.();
   }
 
-  function handlePickerSelect(emoji: {
-    unicode?: string;
-    custom?: CustomEmoji;
-    local?: { id: string; name: string; blob: Blob };
-  }) {
+  function openFullPicker(e: MouseEvent) {
+    const btn = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const pickerW = 320;
+    const pickerH = 384;
+    const margin = 8;
+
+    let top = btn.top - pickerH - margin;
+    if (top < margin) top = btn.bottom + margin;
+
+    let left = btn.right - pickerW;
+    if (left < margin) left = margin;
+    if (left + pickerW > window.innerWidth - margin) left = window.innerWidth - pickerW - margin;
+
+    fullPickerStyle = `top:${top}px;left:${left}px;`;
+    showFullPicker = true;
+  }
+
+  function handlePickerSelect(emoji: { unicode?: string; custom?: CustomEmoji }) {
     if (emoji.unicode) {
       addReaction(emoji.unicode);
     } else if (emoji.custom) {
-      ws.send({
-        type: 'reaction:add',
-        data: { messageId: message.id, emojiId: emoji.custom.id },
-      });
+      ws.send({ type: 'reaction:add', data: { messageId: message.id, emojiId: emoji.custom.id } });
+      onclose?.();
     }
-    showFullPicker = false;
-  }
-
-  function handlePickerClose() {
     showFullPicker = false;
   }
 </script>
 
-<div class="relative flex items-center gap-0.5">
+<div class="flex items-center gap-0.5 bg-bg-floating border border-divider rounded-xl shadow-2xl px-1.5 py-1">
   <!-- Quick reaction buttons -->
   {#each displayEmojis as emoji, i (i)}
     <button
@@ -65,7 +70,6 @@
       title="React with {emoji}"
       class="
         w-8 h-7 flex items-center justify-center rounded text-base
-        bg-bg-floating border border-divider shadow-md
         hover:bg-bg-hover hover:scale-110 active:scale-95
         transition-all duration-100
       "
@@ -75,13 +79,11 @@
 
   <!-- Open full picker -->
   <button
-    onclick={() => showFullPicker = !showFullPicker}
+    onclick={openFullPicker}
     title="More reactions"
     aria-label="More reactions"
-    aria-expanded={showFullPicker}
     class="
       w-8 h-7 flex items-center justify-center rounded
-      bg-bg-floating border border-divider shadow-md
       text-text-muted hover:text-text-primary hover:bg-bg-hover
       transition-colors duration-100
     "
@@ -90,14 +92,16 @@
       <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
     </svg>
   </button>
-
-  <!-- Full emoji picker popup -->
-  {#if showFullPicker}
-    <div class="absolute bottom-9 right-0 z-50">
-      <EmojiPicker
-        onselect={handlePickerSelect}
-        onclose={handlePickerClose}
-      />
-    </div>
-  {/if}
 </div>
+
+<!-- Full emoji picker at fixed viewport position -->
+{#if showFullPicker}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="fixed inset-0 z-[60]" onclick={() => (showFullPicker = false)}></div>
+  <div class="fixed z-[70]" style={fullPickerStyle}>
+    <EmojiPicker
+      onselect={handlePickerSelect}
+      onclose={() => (showFullPicker = false)}
+    />
+  </div>
+{/if}

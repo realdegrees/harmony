@@ -5,8 +5,12 @@
   import { ui } from '$lib/stores/ui.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import EmojiPicker from '$lib/components/chat/EmojiPicker.svelte';
+  import GifPicker from '$lib/components/chat/GifPicker.svelte';
+  import Tooltip from '$lib/components/ui/Tooltip.svelte';
+  import { detectEmbeds } from '$lib/utils/embed';
   import type { Message } from '@harmony/shared/types/message';
   import type { CustomEmoji } from '@harmony/shared/types/emoji';
+  import type { GiphyGif } from '@harmony/shared/types/api';
 
   interface Props {
     channelId: string;
@@ -24,6 +28,7 @@
   let sending = $state(false);
   let dragOver = $state(false);
   let emojiPickerOpen = $state(false);
+  let gifPickerOpen = $state(false);
 
   function handleEmojiSelect(emoji: { unicode?: string; custom?: CustomEmoji }) {
     if (emoji.unicode) {
@@ -33,6 +38,26 @@
     }
     emojiPickerOpen = false;
     textareaEl?.focus();
+  }
+
+  async function handleGifSelect(gif: GiphyGif) {
+    gifPickerOpen = false;
+    // Send the GIF URL as the message content — detectEmbeds will render it inline
+    const embeds = detectEmbeds(gif.url);
+    sending = true;
+    try {
+      await api.post(`/channels/${channelId}/messages`, {
+        content: gif.url,
+        embeds,
+        replyToId: ui.replyingTo?.id,
+      });
+      ui.clearReply();
+    } catch (err) {
+      console.error('Failed to send GIF:', err);
+    } finally {
+      sending = false;
+      textareaEl?.focus();
+    }
   }
 
   const replyingTo = $derived(ui.replyingTo);
@@ -78,7 +103,6 @@
       await messages.sendMessage(channelId, text, replyingTo?.id);
       ui.clearReply();
     } catch (err) {
-      // Restore content on failure
       content = text;
       console.error('Failed to send message:', err);
     } finally {
@@ -103,7 +127,6 @@
   async function handleFileSelect(files: FileList | null) {
     if (!files || files.length === 0) return;
     try {
-      // Backend expects one file per request on POST /api/attachments with field 'file'
       const attachmentIds: string[] = [];
       for (const file of files) {
         const fd = new FormData();
@@ -111,7 +134,6 @@
         const result = await api.upload<{ id: string }>('/attachments', fd);
         attachmentIds.push(result.id);
       }
-      // Send a message with the collected attachment IDs
       await api.post(`/channels/${channelId}/messages`, {
         content: content.trim() || '',
         attachmentIds,
@@ -176,23 +198,51 @@
     ondrop={handleDrop}
   >
     <!-- Attachment button -->
-    <label
-      class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-all duration-100 cursor-pointer shrink-0"
-      aria-label="Add attachment"
-      title="Add Attachment"
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-      <input
-        type="file"
-        class="sr-only"
-        multiple
-        onchange={(e) => handleFileSelect((e.currentTarget as HTMLInputElement).files)}
-        aria-label="Upload file"
-      />
-    </label>
+    <Tooltip text="Add Attachment" position="top">
+      <label
+        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-all duration-100 cursor-pointer shrink-0"
+        aria-label="Add attachment"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <input
+          type="file"
+          class="sr-only"
+          multiple
+          onchange={(e) => handleFileSelect((e.currentTarget as HTMLInputElement).files)}
+          aria-label="Upload file"
+        />
+      </label>
+    </Tooltip>
+
+    <!-- GIF button -->
+    <Tooltip text="Send a GIF" position="top">
+      <div class="relative shrink-0">
+        <button
+          class="p-1.5 rounded-lg transition-all duration-100 text-xs font-bold leading-none
+            {gifPickerOpen
+              ? 'text-text-primary bg-white/[0.12]'
+              : 'text-text-muted hover:text-text-primary hover:bg-white/[0.08]'}"
+          onclick={() => { gifPickerOpen = !gifPickerOpen; if (gifPickerOpen) emojiPickerOpen = false; }}
+          aria-label="Send a GIF"
+          aria-pressed={gifPickerOpen}
+        >
+          GIF
+        </button>
+        {#if gifPickerOpen}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="fixed inset-0 z-40" onclick={() => (gifPickerOpen = false)}></div>
+          <div class="absolute bottom-10 left-0 z-50">
+            <GifPicker
+              onselect={handleGifSelect}
+              onclose={() => (gifPickerOpen = false)}
+            />
+          </div>
+        {/if}
+      </div>
+    </Tooltip>
 
     <!-- Textarea -->
     <textarea
@@ -226,23 +276,24 @@
 
       <!-- Emoji button + picker -->
       <div class="relative">
-        <button
-          class="p-1.5 rounded-lg transition-all duration-100
-            {emojiPickerOpen
-              ? 'text-text-primary bg-white/[0.12]'
-              : 'text-text-muted hover:text-text-primary hover:bg-white/[0.08]'}"
-          onclick={() => (emojiPickerOpen = !emojiPickerOpen)}
-          aria-label="Add emoji"
-          title="Add Emoji"
-          aria-pressed={emojiPickerOpen}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-          </svg>
-        </button>
+        <Tooltip text="Add Emoji" position="top">
+          <button
+            class="p-1.5 rounded-lg transition-all duration-100
+              {emojiPickerOpen
+                ? 'text-text-primary bg-white/[0.12]'
+                : 'text-text-muted hover:text-text-primary hover:bg-white/[0.08]'}"
+            onclick={() => { emojiPickerOpen = !emojiPickerOpen; if (emojiPickerOpen) gifPickerOpen = false; }}
+            aria-label="Add emoji"
+            aria-pressed={emojiPickerOpen}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+              <line x1="9" y1="9" x2="9.01" y2="9"></line>
+              <line x1="15" y1="9" x2="15.01" y2="9"></line>
+            </svg>
+          </button>
+        </Tooltip>
         {#if emojiPickerOpen}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="fixed inset-0 z-40" onclick={() => (emojiPickerOpen = false)}></div>
@@ -256,21 +307,22 @@
       </div>
 
       <!-- Send button -->
-      <button
-        class="p-1.5 rounded-lg transition-all duration-100
-          {canSend
-            ? 'text-brand hover:text-brand-hover hover:bg-brand/15 shadow-[0_0_12px_rgba(92,110,240,0.2)]'
-            : 'text-text-muted opacity-40 cursor-not-allowed'}"
-        onclick={handleSend}
-        disabled={!canSend}
-        aria-label="Send message"
-        title="Send Message (Enter)"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="22" y1="2" x2="11" y2="13"></line>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-        </svg>
-      </button>
+      <Tooltip text="Send (Enter)" position="top">
+        <button
+          class="p-1.5 rounded-lg transition-all duration-100
+            {canSend
+              ? 'text-brand hover:text-brand-hover hover:bg-brand/15 shadow-[0_0_12px_rgba(92,110,240,0.2)]'
+              : 'text-text-muted opacity-40 cursor-not-allowed'}"
+          onclick={handleSend}
+          disabled={!canSend}
+          aria-label="Send message"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </Tooltip>
     </div>
   </div>
 </div>

@@ -7,6 +7,7 @@ import { sanitizeUser } from '../users/service';
 import { validateAndClaimToken } from './admin-token';
 import { assignRole, getAdminRole } from '../roles/service';
 
+
 // ---------------------------------------------------------------------------
 // POST /api/auth/register
 // ---------------------------------------------------------------------------
@@ -138,10 +139,43 @@ async function handleRefresh(req: Request): Promise<Response> {
 // POST /api/auth/logout
 // ---------------------------------------------------------------------------
 
-// Stateless implementation: the client discards tokens.
-// A Redis-based blacklist can be wired in here later.
 async function handleLogout(_req: Request): Promise<Response> {
+  // Stateless — client discards tokens. Respond 200 so the client knows
+  // the server acknowledged the logout.
   return json({ message: 'Logged out successfully' });
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/change-password   (authenticated)
+// ---------------------------------------------------------------------------
+
+async function handleChangePassword(req: Request, userId: string): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return error('Invalid JSON body', 400, 'INVALID_BODY');
+  }
+
+  const { currentPassword, newPassword } = (body ?? {}) as Record<string, unknown>;
+
+  if (typeof currentPassword !== 'string' || !currentPassword) {
+    return error('currentPassword is required', 400, 'MISSING_FIELD');
+  }
+  if (typeof newPassword !== 'string' || newPassword.length < 8) {
+    return error('newPassword must be at least 8 characters', 400, 'INVALID_PASSWORD');
+  }
+
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (!user) return error('User not found', 404, 'NOT_FOUND');
+
+  const valid = await verifyPassword(currentPassword, user.passwordHash);
+  if (!valid) return error('Current password is incorrect', 403, 'INVALID_CREDENTIALS');
+
+  const passwordHash = await hashPassword(newPassword);
+  await db.user.update({ where: { id: userId }, data: { passwordHash } });
+
+  return json({ message: 'Password changed successfully' });
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +259,10 @@ export async function handleAuthenticatedRoute(
 
   if (path === '/api/auth/claim-admin' && method === 'POST') {
     return handleClaimAdmin(req, userId);
+  }
+
+  if (path === '/api/auth/change-password' && method === 'POST') {
+    return handleChangePassword(req, userId);
   }
 
   return null;

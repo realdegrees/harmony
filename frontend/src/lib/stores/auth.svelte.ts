@@ -2,6 +2,7 @@ import { api } from '$lib/api/client';
 import { ws } from '$lib/api/ws';
 import type { User } from '@harmony/shared/types/user';
 import type { LoginResponse, RegisterResponse } from '@harmony/shared/types/api';
+import type { UserUpdatedPayload } from '@harmony/shared/types/ws-events';
 
 class AuthStore {
   user = $state<User | null>(null);
@@ -40,6 +41,7 @@ class AuthStore {
         api.setTokens(accessToken, refreshToken);
         this.user = JSON.parse(userData) as User;
         ws.connect(accessToken);
+        this.subscribeWsEvents();
       } catch {
         // Corrupt data — clear it
         localStorage.removeItem('accessToken');
@@ -68,6 +70,16 @@ class AuthStore {
     api.setTokens(res.accessToken, res.refreshToken);
     this.user = res.user;
     ws.connect(res.accessToken);
+    this.subscribeWsEvents();
+  }
+
+  private subscribeWsEvents(): void {
+    ws.on<UserUpdatedPayload>('user:updated', ({ user }) => {
+      // Only apply updates for the currently authenticated user
+      if (this.user && user.id === this.user.id) {
+        this.updateUser(user);
+      }
+    });
   }
 
   updateUser(updated: User): void {
@@ -78,6 +90,8 @@ class AuthStore {
   }
 
   logout(): void {
+    // Fire-and-forget — tell the server, but don't wait; clean up locally regardless
+    api.post('/auth/logout', {}).catch(() => {});
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');

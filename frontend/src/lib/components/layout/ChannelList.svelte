@@ -5,6 +5,7 @@
   import { ui } from '$lib/stores/ui.svelte';
   import { auth } from '$lib/stores/auth.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
+  import Badge from '$lib/components/ui/Badge.svelte';
   import { ChannelType } from '@harmony/shared/types/channel';
   import type { ChannelWithUnread } from '@harmony/shared/types/channel';
   import type { VoiceParticipant } from '@harmony/shared/types/voice';
@@ -98,14 +99,7 @@
           <span class="flex-1 truncate text-sm">{channel.name}</span>
 
           <!-- Unread badge -->
-          {#if channel.unreadCount > 0}
-            <span
-              class="min-w-[18px] h-[18px] px-1 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(92,110,240,0.5)]"
-              aria-label="{channel.unreadCount} unread"
-            >
-              {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
-            </span>
-          {/if}
+          <Badge count={channel.unreadCount} />
 
           <!-- Voice channel: text-only button (view chat without joining voice) -->
           {#if type === ChannelType.VOICE}

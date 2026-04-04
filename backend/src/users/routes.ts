@@ -4,6 +4,8 @@ import { getUserProfile, getAllUsers, updateUser } from './service';
 import { json, error } from '../utils/response';
 import { db } from '../db/client';
 import { getAllPresence } from '../ws/presence';
+import { getStorage } from '../storage';
+import { env } from '../config/env';
 
 // Serialize a UserProfile so that role permissions are JSON-safe strings.
 function serializeProfile(profile: Awaited<ReturnType<typeof getUserProfile>>) {
@@ -119,11 +121,12 @@ export async function handleUserRoute(
     if (!q.trim()) return json([]);
 
     try {
+      // SQLite LIKE is case-insensitive for ASCII; no mode:'insensitive' needed
       const users = await db.user.findMany({
         where: {
           OR: [
-            { username: { contains: q, mode: 'insensitive' } },
-            { displayName: { contains: q, mode: 'insensitive' } },
+            { username: { contains: q } },
+            { displayName: { contains: q } },
           ],
         },
         select: { id: true, username: true, displayName: true, avatarPath: true },
@@ -134,6 +137,42 @@ export async function handleUserRoute(
     } catch (e) {
       console.error(e);
       return error('Search failed', 500);
+    }
+  }
+
+  // POST /api/users/me/avatar
+  if (path === '/api/users/me/avatar' && method === 'POST') {
+    try {
+      const formData = await req.formData();
+      const file = formData.get('avatar');
+      if (!(file instanceof File)) {
+        return error('Missing or invalid field: avatar', 400);
+      }
+
+      const maxBytes = env.MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+      if (file.size > maxBytes) {
+        return error(`Avatar too large (max ${env.MAX_UPLOAD_SIZE_MB}MB)`, 413);
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        return error('Avatar must be a JPEG, PNG, WebP, or GIF', 415);
+      }
+
+      const storage = getStorage();
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const filename = `${userId}-${Date.now()}.${ext}`;
+      const buf = Buffer.from(await file.arrayBuffer());
+      const storedPath = await storage.save('avatars', filename, buf);
+
+      const user = await db.user.update({
+        where: { id: userId },
+        data: { avatarPath: storedPath },
+      });
+
+      return json({ avatarPath: user.avatarPath });
+    } catch (e) {
+      return error((e as Error).message, 500);
     }
   }
 

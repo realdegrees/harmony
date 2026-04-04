@@ -3,6 +3,7 @@
   import { ui } from '$lib/stores/ui.svelte';
   import { notifications } from '$lib/stores/notifications.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
+  import Badge from '$lib/components/ui/Badge.svelte';
   import SearchBar from '$lib/components/search/SearchBar.svelte';
   import SearchResults from '$lib/components/search/SearchResults.svelte';
   import type { ChannelWithUnread } from '@harmony/shared/types/channel';
@@ -152,29 +153,23 @@
 
     <!-- Notifications bell + dropdown -->
     <div class="relative">
-      <button
-        class="p-1.5 rounded-lg transition-all duration-100
-          {notifOpen
-            ? 'text-text-primary bg-white/[0.12]'
-            : 'text-text-muted hover:text-text-primary hover:bg-white/[0.07]'}"
-        onclick={() => (notifOpen = !notifOpen)}
-        aria-label="Notifications{unreadCount > 0 ? ` (${unreadCount} unread)` : ''}"
-        aria-pressed={notifOpen}
-        title="Notifications"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-        </svg>
-      </button>
-      {#if unreadCount > 0}
-        <span
-          class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center pointer-events-none"
-          aria-hidden="true"
+      <Badge count={unreadCount}>
+        <button
+          class="p-1.5 rounded-lg transition-all duration-100
+            {notifOpen
+              ? 'text-text-primary bg-white/[0.12]'
+              : 'text-text-muted hover:text-text-primary hover:bg-white/[0.07]'}"
+          onclick={() => (notifOpen = !notifOpen)}
+          aria-label="Notifications{unreadCount > 0 ? ` (${unreadCount} unread)` : ''}"
+          aria-pressed={notifOpen}
+          title="Notifications"
         >
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </span>
-      {/if}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+        </button>
+      </Badge>
 
       <!-- Notification dropdown -->
       {#if notifOpen}

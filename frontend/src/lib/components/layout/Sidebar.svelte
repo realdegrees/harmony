@@ -10,6 +10,7 @@
   import ChannelList from './ChannelList.svelte';
   import VoiceControls from '$lib/components/voice/VoiceControls.svelte';
   import Soundboard from '$lib/components/voice/Soundboard.svelte';
+  import StatusSelector from '$lib/components/user/StatusSelector.svelte';
   import { ChannelType } from '@harmony/shared/types/channel';
   import type { ChannelCategoryWithChannels } from '@harmony/shared/types/channel';
   import type { CreateChannelRequest } from '@harmony/shared/types/api';
@@ -110,6 +111,10 @@
 
   // ── Soundboard ────────────────────────────────────────────────────────────
   let soundboardOpen = $state(false);
+
+  // ── Status selector ───────────────────────────────────────────────────────
+  let statusSelectorOpen = $state(false);
+  let statusAnchorStyle = $state('');
 </script>
 
 <!-- Shared prompt modal -->
@@ -343,21 +348,34 @@
 
   <!-- User panel at bottom -->
   {#if auth.user}
-    <div class="flex items-center gap-2 px-2.5 py-2.5 border-t border-white/[0.06] bg-white/[0.02]">
-      <Avatar
-        src={auth.user.avatarPath}
-        username={auth.user.displayName || auth.user.username}
-        size="sm"
-        status={userStatus}
-      />
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-semibold text-text-primary truncate leading-tight">
-          {auth.user.displayName || auth.user.username}
-        </p>
-        <p class="text-xs text-text-muted truncate leading-tight">
-          #{auth.user.username}
-        </p>
-      </div>
+    <div class="relative flex items-center gap-2 px-2.5 py-2.5 border-t border-white/[0.06] bg-white/[0.02]">
+      <!-- Clickable avatar + name area — opens status selector -->
+      <button
+        class="flex items-center gap-2 flex-1 min-w-0 rounded-lg p-1 -m-1 hover:bg-white/[0.06] transition-all duration-100 text-left"
+        onclick={(e) => {
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          statusAnchorStyle = `bottom:${window.innerHeight - rect.top + 8}px;left:${rect.left}px;`;
+          statusSelectorOpen = !statusSelectorOpen;
+        }}
+        aria-label="Set status"
+        title="Set Status"
+      >
+        <Avatar
+          src={auth.user.avatarPath}
+          username={auth.user.displayName || auth.user.username}
+          size="sm"
+          status={userStatus}
+        />
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-text-primary truncate leading-tight">
+            {auth.user.displayName || auth.user.username}
+          </p>
+          <p class="text-xs text-text-muted truncate leading-tight">
+            #{auth.user.username}
+          </p>
+        </div>
+      </button>
+
       <button
         class="text-text-muted hover:text-text-primary transition-all duration-100 p-1.5 rounded-lg hover:bg-white/[0.08] shrink-0"
         onclick={() => goto('/settings')}
@@ -372,3 +390,12 @@
     </div>
   {/if}
 </aside>
+
+<!-- Status selector popup at fixed position above the user panel -->
+{#if statusSelectorOpen}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="fixed inset-0 z-40" onclick={() => (statusSelectorOpen = false)}></div>
+  <div class="fixed z-50" style={statusAnchorStyle}>
+    <StatusSelector onclose={() => (statusSelectorOpen = false)} />
+  </div>
+{/if}

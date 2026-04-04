@@ -8,9 +8,9 @@
   import Reaction from './Reaction.svelte';
   import Attachment from './Attachment.svelte';
   import Embed from './Embed.svelte';
-  import EmojiPicker from './EmojiPicker.svelte';
+  import ReactionPicker from './ReactionPicker.svelte';
+  import Tooltip from '$lib/components/ui/Tooltip.svelte';
   import type { Message } from '@harmony/shared/types/message';
-  import type { CustomEmoji } from '@harmony/shared/types/emoji';
 
   interface Props {
     message: Message;
@@ -26,13 +26,34 @@
   let editContent = $state('');
   let reactionPickerOpen = $state(false);
 
-  function handleReactionSelect(emoji: { unicode?: string; custom?: CustomEmoji }) {
-    reactionPickerOpen = false;
-    if (emoji.unicode) {
-      ws.send({ type: 'reaction:add', data: { messageId: message.id, emojiUnicode: emoji.unicode } });
-    } else if (emoji.custom) {
-      ws.send({ type: 'reaction:add', data: { messageId: message.id, emojiId: emoji.custom.id } });
+  // Viewport-safe picker position — computed when the reaction button is clicked
+  let pickerStyle = $state('');
+
+  function openReactionPicker(e: MouseEvent) {
+    const btn = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const pickerW = 320; // EmojiPicker width (w-80)
+    const pickerH = 384; // EmojiPicker height (h-96)
+    const margin = 8;
+
+    // Prefer opening upward from the button
+    let top: number;
+    let left: number;
+
+    if (btn.top - pickerH - margin > 0) {
+      // Enough room above
+      top = btn.top - pickerH - margin;
+    } else {
+      // Open downward
+      top = btn.bottom + margin;
     }
+
+    // Align right edge of picker with right edge of button; clamp to viewport
+    left = btn.right - pickerW;
+    if (left < margin) left = margin;
+    if (left + pickerW > window.innerWidth - margin) left = window.innerWidth - pickerW - margin;
+
+    pickerStyle = `top:${top}px;left:${left}px;`;
+    reactionPickerOpen = true;
   }
 
   const isOwn = $derived(auth.user?.id === message.authorId);
@@ -72,30 +93,19 @@
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
     const items = [
-      {
-        label: 'Reply',
-        action: () => ui.setReplyTo(message),
-      },
+      { label: 'Reply', action: () => ui.setReplyTo(message) },
     ];
     if (isOwn) {
       items.push({ label: 'Edit Message', action: startEdit });
     }
     items.push({ label: '', action: () => {}, divider: true } as any);
-    items.push({
-      label: 'Copy Message',
-      action: () => navigator.clipboard.writeText(message.content),
-    });
+    items.push({ label: 'Copy Message', action: () => navigator.clipboard.writeText(message.content) });
     if (isOwn) {
-      items.push({
-        label: 'Delete Message',
-        danger: true,
-        action: deleteMsg,
-      } as any);
+      items.push({ label: 'Delete Message', danger: true, action: deleteMsg } as any);
     }
     ui.showContextMenu(e.clientX, e.clientY, items as any);
   }
 
-  // Render content with @mention highlighting
   function renderContent(content: string): string {
     return content
       .replace(/&/g, '&amp;')
@@ -119,7 +129,6 @@
   aria-label="Message from {message.author.displayName || message.author.username}"
 >
   {#if isCompact}
-    <!-- Compact mode: timestamp on hover in the left gutter -->
     <div class="w-10 shrink-0 flex items-center justify-end">
       <time
         class="text-[10px] text-text-muted leading-none opacity-0 group-hover:opacity-100 transition-opacity select-none"
@@ -130,7 +139,6 @@
       </time>
     </div>
   {:else}
-    <!-- Full mode: avatar -->
     <div class="shrink-0 w-10">
       <Avatar
         src={message.author.avatarPath}
@@ -226,25 +234,25 @@
       aria-label="Message actions"
     >
       <!-- Reply -->
-      <button
-        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
-        onclick={() => ui.setReplyTo(message)}
-        aria-label="Reply"
-        title="Reply"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="9 17 4 12 9 7"></polyline>
-          <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
-        </svg>
-      </button>
-
-      <!-- React -->
-      <div class="relative">
+      <Tooltip text="Reply" position="top">
         <button
           class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
-          onclick={() => (reactionPickerOpen = !reactionPickerOpen)}
+          onclick={() => ui.setReplyTo(message)}
+          aria-label="Reply"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 17 4 12 9 7"></polyline>
+            <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+          </svg>
+        </button>
+      </Tooltip>
+
+      <!-- React — opens ReactionPicker at a viewport-safe fixed position -->
+      <Tooltip text="Add Reaction" position="top">
+        <button
+          class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
+          onclick={openReactionPicker}
           aria-label="Add reaction"
-          title="Add Reaction"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10"></circle>
@@ -253,48 +261,48 @@
             <line x1="15" y1="9" x2="15.01" y2="9"></line>
           </svg>
         </button>
-        {#if reactionPickerOpen}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="fixed inset-0 z-40" onclick={() => (reactionPickerOpen = false)}></div>
-          <div class="absolute bottom-8 right-0 z-50">
-            <EmojiPicker
-              onselect={handleReactionSelect}
-              onclose={() => (reactionPickerOpen = false)}
-            />
-          </div>
-        {/if}
-      </div>
+      </Tooltip>
 
-      <!-- Edit (own message only) -->
+      <!-- Edit (own messages only) -->
       {#if isOwn}
-        <button
-          class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
-          onclick={startEdit}
-          aria-label="Edit message"
-          title="Edit Message"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-          </svg>
-        </button>
+        <Tooltip text="Edit" position="top">
+          <button
+            class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
+            onclick={startEdit}
+            aria-label="Edit message"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+        </Tooltip>
 
-        <!-- Delete -->
-        <button
-          class="p-1.5 rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
-          onclick={deleteMsg}
-          aria-label="Delete message"
-          title="Delete Message"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-            <path d="M10 11v6"></path>
-            <path d="M14 11v6"></path>
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-          </svg>
-        </button>
+        <Tooltip text="Delete" position="top">
+          <button
+            class="p-1.5 rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+            onclick={deleteMsg}
+            aria-label="Delete message"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6"></path>
+              <path d="M14 11v6"></path>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+            </svg>
+          </button>
+        </Tooltip>
       {/if}
     </div>
   {/if}
 </div>
+
+<!-- Reaction picker rendered at fixed viewport position so it never clips -->
+{#if reactionPickerOpen}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="fixed inset-0 z-40" onclick={() => (reactionPickerOpen = false)}></div>
+  <div class="fixed z-50" style={pickerStyle}>
+    <ReactionPicker {message} />
+  </div>
+{/if}
