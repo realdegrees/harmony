@@ -65,7 +65,7 @@ COPY backend/ ./backend/
 
 RUN bun run build:shared && \
     cd backend && \
-    DATABASE_URL=file:/data/harmony.db bunx prisma generate && \
+    DATABASE_URL=file:/data/harmony.db bun x prisma generate && \
     bun run build
 
 # -----------------------------------------------------------------------------
