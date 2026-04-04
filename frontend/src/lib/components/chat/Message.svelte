@@ -59,6 +59,18 @@
 
   const isOwn = $derived(auth.user?.id === message.authorId);
 
+  // Compute embeds client-side from content if the backend didn't supply them
+  const computedEmbeds = $derived(
+    message.embeds?.length ? message.embeds : detectEmbeds(message.content)
+  );
+
+  // True when the entire message content is just a single URL that became an embed
+  // — in that case we hide the raw URL text so only the embed renders
+  const isEmbedOnly = $derived(
+    computedEmbeds.length > 0 &&
+    message.content.trim() === computedEmbeds[0].url.trim()
+  );
+
   const formattedTime = $derived(
     new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   );
@@ -188,16 +200,18 @@
         </p>
       </div>
     {:else}
-      <p
-        class="text-sm text-text-primary break-words leading-relaxed"
-        role="none"
-      >
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-        {@html renderContent(message.content)}
-        {#if message.editedAt}
-          <span class="text-[10px] text-text-muted ml-1">(edited)</span>
-        {/if}
-      </p>
+      {#if !isEmbedOnly}
+        <p
+          class="text-sm text-text-primary break-words leading-relaxed"
+          role="none"
+        >
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+          {@html renderContent(message.content)}
+          {#if message.editedAt}
+            <span class="text-[10px] text-text-muted ml-1">(edited)</span>
+          {/if}
+        </p>
+      {/if}
     {/if}
 
     <!-- Attachments -->
@@ -210,9 +224,9 @@
     {/if}
 
     <!-- Embeds -->
-    {#if message.embeds && message.embeds.length > 0}
+    {#if computedEmbeds.length > 0}
       <div class="flex flex-col gap-1 mt-1">
-        {#each message.embeds as embed, i (i)}
+        {#each computedEmbeds as embed, i (i)}
           <Embed {embed} />
         {/each}
       </div>
