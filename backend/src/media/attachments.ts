@@ -21,7 +21,7 @@ export interface PendingAttachment {
 
 function toAttachment(row: {
   id: string;
-  messageId: string;
+  messageId: string | null;
   filename: string;
   path: string;
   mimeType: string;
@@ -30,7 +30,7 @@ function toAttachment(row: {
   const storage = getStorage();
   return {
     id: row.id,
-    messageId: row.messageId,
+    messageId: row.messageId ?? '',
     filename: row.filename,
     path: row.path,
     url: storage.getUrl(row.path),

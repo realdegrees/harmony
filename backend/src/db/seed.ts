@@ -1,4 +1,4 @@
-import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaLibSql } from '@prisma/adapter-libsql';
 import { PrismaClient } from '../../generated/prisma/client.js';
 import {
   ADMIN_PERMISSIONS,
@@ -7,7 +7,7 @@ import {
 } from '@harmony/shared/constants';
 import { env } from '../config/env';
 
-const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+const adapter = new PrismaLibSql({ url: env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
 
 async function seed() {
