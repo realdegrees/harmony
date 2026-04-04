@@ -48,7 +48,7 @@ ok "Frontend built → frontend/build/"
 step "Building Tauri desktop app (this takes a while on first run)..."
 cd desktop
 # Skip the beforeBuildCommand — we already built everything above
-bun run tauri build -- --no-bundle false
+bun run tauri build
 cd ..
 
 # ---------------------------------------------------------------------------
