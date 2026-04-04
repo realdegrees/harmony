@@ -25,7 +25,7 @@ export type RawAuthor = {
 
 export type RawAttachment = {
   id: string;
-  messageId: string;
+  messageId: string | null;
   filename: string;
   path: string;
   mimeType: string;
@@ -112,7 +112,7 @@ export function toMessage(raw: RawMessage, currentUserId?: string): Message {
 
   const attachments = raw.attachments.map((a) => ({
     id: a.id,
-    messageId: a.messageId,
+    messageId: a.messageId ?? raw.id,
     filename: a.filename,
     path: a.path,
     mimeType: a.mimeType,

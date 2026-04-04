@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import { Limits } from '../constants/limits.ts';
 
-export const sendMessageSchema = z.object({
-  content: z.string().min(1).max(Limits.MAX_MESSAGE_LENGTH),
-  replyToId: z.string().uuid().optional(),
-  attachmentIds: z.array(z.string().uuid()).optional(),
-});
+export const sendMessageSchema = z
+  .object({
+    content: z.string().max(Limits.MAX_MESSAGE_LENGTH).optional().default(''),
+    replyToId: z.string().uuid().optional(),
+    attachmentIds: z.array(z.string().uuid()).optional(),
+  })
+  .refine((data) => data.content.length > 0 || (data.attachmentIds?.length ?? 0) > 0, {
+    message: 'Message must have content or at least one attachment',
+  });
 
 export const editMessageSchema = z.object({
   content: z.string().min(1).max(Limits.MAX_MESSAGE_LENGTH),

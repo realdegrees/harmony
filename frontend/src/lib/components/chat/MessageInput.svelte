@@ -7,7 +7,6 @@
   import EmojiPicker from '$lib/components/chat/EmojiPicker.svelte';
   import GifPicker from '$lib/components/chat/GifPicker.svelte';
   import Tooltip from '$lib/components/ui/Tooltip.svelte';
-  import { detectEmbeds } from '$lib/utils/embed';
   import type { Message } from '@harmony/shared/types/message';
   import type { CustomEmoji } from '@harmony/shared/types/emoji';
   import type { GiphyGif } from '@harmony/shared/types/api';
@@ -42,15 +41,9 @@
 
   async function handleGifSelect(gif: GiphyGif) {
     gifPickerOpen = false;
-    // Send the GIF URL as the message content — detectEmbeds will render it inline
-    const embeds = detectEmbeds(gif.url);
     sending = true;
     try {
-      await api.post(`/channels/${channelId}/messages`, {
-        content: gif.url,
-        embeds,
-        replyToId: ui.replyingTo?.id,
-      });
+      await messages.sendMessage(channelId, gif.url, ui.replyingTo?.id);
       ui.clearReply();
     } catch (err) {
       console.error('Failed to send GIF:', err);
@@ -126,6 +119,7 @@
 
   async function handleFileSelect(files: FileList | null) {
     if (!files || files.length === 0) return;
+    sending = true;
     try {
       const attachmentIds: string[] = [];
       for (const file of files) {
@@ -134,15 +128,15 @@
         const result = await api.upload<{ id: string }>('/attachments', fd);
         attachmentIds.push(result.id);
       }
-      await api.post(`/channels/${channelId}/messages`, {
-        content: content.trim() || '',
-        attachmentIds,
-        replyToId: replyingTo?.id,
-      });
+      await messages.sendMessage(channelId, content.trim(), replyingTo?.id, attachmentIds);
       content = '';
+      autoGrow();
       ui.clearReply();
     } catch (err) {
       console.error('Failed to upload files:', err);
+    } finally {
+      sending = false;
+      textareaEl?.focus();
     }
   }
 

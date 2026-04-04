@@ -172,14 +172,14 @@ model Message {
 }
 
 model Attachment {
-  id        String @id @default(uuid())
-  messageId String
+  id        String  @id @default(uuid())
+  messageId String?
   filename  String
   path      String
   mimeType  String
   size      Int
 
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("attachments")
 }

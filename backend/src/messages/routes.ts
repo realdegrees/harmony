@@ -11,6 +11,8 @@ import { searchMessages } from './search';
 import { canSendMessages } from '../channels/permissions';
 import { db } from '../db/client';
 import { Permissions, hasPermission } from '@harmony/shared/constants/permissions';
+import { broadcastToChannel } from '../ws/server';
+import { getWsServer } from '../ws/router';
 
 // ---------------------------------------------------------------------------
 // Permission helpers
@@ -123,6 +125,16 @@ export async function handleMessageRoute(
           parsed.data.replyToId,
           parsed.data.attachmentIds,
         );
+
+        // Broadcast to all channel subscribers so other users see the message
+        const wsServer = getWsServer();
+        if (wsServer) {
+          broadcastToChannel(wsServer, channelId, {
+            type: 'message:new',
+            data: { message },
+          });
+        }
+
         return json(message, 201);
       } catch (e) {
         console.error(e);

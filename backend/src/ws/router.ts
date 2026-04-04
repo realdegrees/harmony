@@ -64,6 +64,10 @@ export function setWsServer(server: { publish: (topic: string, data: string) => 
   _server = server;
 }
 
+export function getWsServer(): { publish: (topic: string, data: string) => void } | null {
+  return _server;
+}
+
 // Wire up auto-expire typing stop → broadcast
 onTypingStop((channelId, userId, username) => {
   if (!_server) return;
@@ -106,8 +110,8 @@ export async function handleWsMessage(
       case 'message:send': {
         const { channelId, content, replyToId, attachmentIds } = event.data;
 
-        if (!channelId || !content?.trim()) {
-          sendError(ws, 'INVALID_PAYLOAD', 'channelId and content are required');
+        if (!channelId || (!content?.trim() && !attachmentIds?.length)) {
+          sendError(ws, 'INVALID_PAYLOAD', 'channelId and either content or attachmentIds are required');
           return;
         }
 

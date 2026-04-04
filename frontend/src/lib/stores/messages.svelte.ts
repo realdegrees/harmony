@@ -92,10 +92,16 @@ class MessagesStore {
     await this.fetchMessages(channelId, cursor);
   }
 
-  async sendMessage(channelId: string, content: string, replyToId?: string): Promise<Message> {
+  async sendMessage(
+    channelId: string,
+    content: string,
+    replyToId?: string,
+    attachmentIds?: string[],
+  ): Promise<Message> {
     const message = await api.post<Message>(`/channels/${channelId}/messages`, {
       content,
       replyToId,
+      attachmentIds,
     });
     // Optimistic add — WS event will also arrive, deduplication handles it
     const existing = this.messagesByChannel.get(channelId) ?? [];

@@ -86,8 +86,7 @@ export async function deleteAttachment(id: string): Promise<void> {
 /**
  * Upload a file before the message is sent. Returns an ID that can be
  * referenced when creating the message. The attachment record is created
- * with a placeholder messageId ('pending') and updated when the message
- * is created.
+ * with a null messageId and updated when the message is created.
  */
 export async function createPendingAttachment(
   file: File,
@@ -102,9 +101,21 @@ export async function createPendingAttachment(
   const id = randomUUID();
   const ext = file.name.split('.').pop() ?? '';
   const filename = ext ? `${id}.${ext}` : id;
+  const mimeType = file.type || (mime.lookup(file.name) || 'application/octet-stream');
 
   const arrayBuffer = await file.arrayBuffer();
   const storedPath = await storage.save('attachments', filename, new Uint8Array(arrayBuffer));
+
+  await db.attachment.create({
+    data: {
+      id,
+      messageId: null,
+      filename: file.name,
+      path: storedPath,
+      mimeType,
+      size: file.size,
+    },
+  });
 
   return { id, path: storedPath };
 }
