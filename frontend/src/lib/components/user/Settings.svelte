@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { auth } from '$lib/stores/auth.svelte';
   import { api } from '$lib/api/client';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
+  import { isTauri, getServerUrl, clearServerUrl } from '$lib/utils/tauri';
 
   interface Props {
     onclose?: () => void;
@@ -11,7 +13,9 @@
 
   let { onclose }: Props = $props();
 
-  type Section = 'profile' | 'account' | 'appearance' | 'voice' | 'notifications';
+  type Section = 'profile' | 'account' | 'appearance' | 'voice' | 'notifications' | 'server';
+
+  const showServerSection = isTauri();
 
   let activeSection = $state<Section>('profile');
   let isSaving = $state(false);
@@ -124,6 +128,10 @@
     { id: 'appearance', label: 'Appearance', icon: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z' },
     { id: 'voice', label: 'Voice & Audio', icon: 'M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z' },
     { id: 'notifications', label: 'Notifications', icon: 'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z' },
+    // Only shown when running as a Tauri desktop app
+    ...(showServerSection
+      ? [{ id: 'server' as Section, label: 'Server', icon: 'M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-.83 0-1.5-.67-1.5-1.5S6.17 16 7 16s1.5.67 1.5 1.5S7.83 19 7 19zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-.83 0-1.5-.67-1.5-1.5S6.17 6 7 6s1.5.67 1.5 1.5S7.83 9 7 9z' }]
+      : []),
   ];
 </script>
 
@@ -403,6 +411,41 @@
                 "
               ></span>
             </button>
+          </div>
+        </div>
+      {/if}
+
+      <!-- ── Server (Tauri only) ── -->
+      {#if activeSection === 'server' && showServerSection}
+        <div class="space-y-4">
+          <div>
+            <h2 class="text-xl font-bold text-text-primary">Server Connection</h2>
+            <p class="text-sm text-text-muted mt-1">The Harmony server this app connects to.</p>
+          </div>
+
+          <div class="bg-bg-secondary rounded-xl p-4 space-y-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-text-muted mb-1">Current Server</p>
+              <p class="text-sm font-mono text-text-primary break-all">{getServerUrl() ?? '—'}</p>
+            </div>
+
+            <div class="border-t border-divider pt-3">
+              <p class="text-xs text-text-muted mb-3">
+                To connect to a different server, disconnect and re-enter the server URL on the connect screen.
+                You will be logged out.
+              </p>
+              <Button
+                variant="danger"
+                size="sm"
+                onclick={() => {
+                  auth.logout();
+                  clearServerUrl();
+                  goto('/connect');
+                }}
+              >
+                Change Server
+              </Button>
+            </div>
           </div>
         </div>
       {/if}

@@ -11,6 +11,7 @@
     "build:frontend": "bun --filter @harmony/frontend build",
     "build:backend": "bun --filter @harmony/backend build",
     "build:desktop": "bun run build:shared && bun --filter @harmony/frontend build:static && bun --filter @harmony/desktop build",
+    "build:desktop:docker": "docker compose -f docker/desktop/docker-compose.build.yml run --rm build",
     "lint": "bun run lint:shared && bun run lint:backend && bun run lint:frontend",
     "lint:shared": "bun --filter @harmony/shared lint",
     "lint:backend": "bun --filter @harmony/backend lint",

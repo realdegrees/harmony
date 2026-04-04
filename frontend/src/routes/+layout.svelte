@@ -7,19 +7,28 @@
   import { notifications } from '$lib/stores/notifications.svelte';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import { ui } from '$lib/stores/ui.svelte';
+  import { isTauri, getServerUrl } from '$lib/utils/tauri';
 
   let { children } = $props();
 
   const authRoutes = ['/login', '/register'];
+  const connectRoute = '/connect';
 
   const isAuthRoute = $derived(authRoutes.some((r) => $page.url.pathname.startsWith(r)));
-  const showAppShell = $derived(auth.isAuthenticated && !isAuthRoute);
+  const isConnectRoute = $derived($page.url.pathname.startsWith(connectRoute));
+  const showAppShell = $derived(auth.isAuthenticated && !isAuthRoute && !isConnectRoute);
 
   $effect(() => {
+    // In Tauri, redirect to /connect if no server URL is configured yet
+    if (isTauri() && !getServerUrl() && !isConnectRoute) {
+      goto('/connect');
+      return;
+    }
+
     if (!auth.isLoading) {
-      if (!auth.isAuthenticated && !isAuthRoute) {
+      if (!auth.isAuthenticated && !isAuthRoute && !isConnectRoute) {
         goto('/login');
-      } else if (auth.isAuthenticated && isAuthRoute) {
+      } else if (auth.isAuthenticated && (isAuthRoute || isConnectRoute)) {
         goto('/channels');
       }
     }

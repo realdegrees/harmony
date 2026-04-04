@@ -1,4 +1,14 @@
-const API_BASE = '/api';
+import { isTauri, getServerUrl } from '$lib/utils/tauri';
+
+/** Returns the base URL for API calls, accounting for Tauri vs browser. */
+function getApiBase(): string {
+  if (isTauri()) {
+    const serverUrl = getServerUrl();
+    if (!serverUrl) throw new Error('No server URL configured. Please connect to a server first.');
+    return `${serverUrl}/api`;
+  }
+  return '/api';
+}
 
 class ApiClient {
   private accessToken: string | null = null;
@@ -49,7 +59,8 @@ class ApiClient {
       init.body = isFormData ? (body as FormData) : JSON.stringify(body);
     }
 
-    let response = await fetch(`${API_BASE}${path}`, init);
+    const apiBase = getApiBase();
+    let response = await fetch(`${apiBase}${path}`, init);
 
     // Attempt token refresh on 401
     if (response.status === 401 && this.refreshToken) {
@@ -57,7 +68,7 @@ class ApiClient {
       if (refreshed) {
         // Retry with new token
         headers['Authorization'] = `Bearer ${this.accessToken}`;
-        response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+        response = await fetch(`${apiBase}${path}`, { ...init, headers });
       } else {
         this.onAuthFailureCallback?.();
         throw new Error('Authentication failed');
@@ -87,7 +98,7 @@ class ApiClient {
     if (!this.refreshToken) return false;
 
     try {
-      const response = await fetch(`${API_BASE}/auth/refresh`, {
+      const response = await fetch(`${getApiBase()}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: this.refreshToken }),

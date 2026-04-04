@@ -7,7 +7,7 @@
     "frontendDist": "../../frontend/build",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "bun --filter @harmony/frontend dev",
-    "beforeBuildCommand": "bun run build:shared && bun --filter @harmony/frontend build:static"
+    "beforeBuildCommand": ""
   },
   "app": {
     "title": "Harmony",

@@ -1,4 +1,5 @@
 import type { ClientEvent, ServerEvent } from '@harmony/shared/types/ws-events';
+import { resolveWsUrl } from '$lib/utils/tauri';
 
 type EventHandler<T = unknown> = (data: T) => void;
 
@@ -17,8 +18,12 @@ class WebSocketClient {
     this.token = token;
     this.intentionalClose = false;
     this.reconnectAttempts = 0;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    this.url = `${protocol}//${window.location.host}/ws?token=${token}`;
+    const wsUrl = resolveWsUrl('/ws');
+    if (!wsUrl) {
+      console.error('[ws] No server URL configured — cannot connect WebSocket.');
+      return;
+    }
+    this.url = `${wsUrl}?token=${token}`;
     this.doConnect();
   }
 
