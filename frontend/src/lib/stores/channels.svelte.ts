@@ -106,7 +106,7 @@ class ChannelsStore {
   }
 
   async fetchDmChannels(): Promise<void> {
-    const data = await api.get<DirectMessageChannel[]>('/channels/dm');
+    const data = await api.get<DirectMessageChannel[]>('/dms');
     this.dmChannels = data;
   }
 

@@ -56,7 +56,7 @@ class NotificationsStore {
   }
 
   async markRead(id: string): Promise<void> {
-    await api.patch(`/notifications/${id}/read`, {});
+    await api.post(`/notifications/${id}/read`);
     this.notifications = this.notifications.map((n) =>
       n.id === id ? { ...n, read: true } : n
     );
@@ -64,12 +64,12 @@ class NotificationsStore {
 
   async markAllRead(channelId?: string): Promise<void> {
     if (channelId) {
-      await api.patch(`/notifications/read-all`, { channelId });
+      await api.post(`/notifications/read-all`, { channelId });
       this.notifications = this.notifications.map((n) =>
         n.channelId === channelId ? { ...n, read: true } : n
       );
     } else {
-      await api.patch(`/notifications/read-all`, {});
+      await api.post(`/notifications/read-all`);
       this.notifications = this.notifications.map((n) => ({ ...n, read: true }));
     }
   }

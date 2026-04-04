@@ -7,6 +7,7 @@
   import { presence } from '$lib/stores/presence.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import ChannelList from './ChannelList.svelte';
+  import VoiceControls from '$lib/components/voice/VoiceControls.svelte';
   import { ChannelType } from '@harmony/shared/types/channel';
   import type { ChannelCategoryWithChannels } from '@harmony/shared/types/channel';
   import type { CreateChannelRequest } from '@harmony/shared/types/api';
@@ -246,6 +247,12 @@
       </div>
     {/if}
   </div>
+
+  <!-- Voice controls (shown when in a voice channel) -->
+  {#if voice.currentChannelId}
+    {@const voiceChannel = channels.channels.find(c => c.id === voice.currentChannelId)}
+    <VoiceControls channelName={voiceChannel?.name ?? 'Voice Channel'} />
+  {/if}
 
   <!-- User panel at bottom -->
   {#if auth.user}

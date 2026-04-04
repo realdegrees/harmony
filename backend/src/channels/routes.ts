@@ -220,6 +220,48 @@ export async function handleChannelRoute(
   }
 
   // -------------------------------------------------------------------------
+  // GET /api/channels/:id/members — returns all server users (single-server model)
+  // -------------------------------------------------------------------------
+  if (sub === '/members' && method === 'GET') {
+    try {
+      const users = await db.user.findMany({
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarPath: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          roles: { include: { role: true } },
+        },
+        orderBy: { username: 'asc' },
+      });
+      const sanitized = users.map((u) => ({
+        id: u.id,
+        username: u.username,
+        displayName: u.displayName,
+        avatarPath: u.avatarPath,
+        status: u.status,
+        createdAt: u.createdAt.toISOString(),
+        updatedAt: u.updatedAt.toISOString(),
+        roles: u.roles.map((ur) => ({
+          id: ur.role.id,
+          name: ur.role.name,
+          color: ur.role.color,
+          position: ur.role.position,
+          permissions: ur.role.permissions.toString(),
+          isDefault: ur.role.isDefault,
+        })),
+      }));
+      return json(sanitized);
+    } catch (e) {
+      console.error(e);
+      return error('Failed to fetch members', 500);
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // PATCH /api/channels/:id
   // -------------------------------------------------------------------------
   if (sub === '' && method === 'PATCH') {
