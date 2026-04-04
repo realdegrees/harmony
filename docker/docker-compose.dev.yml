@@ -9,6 +9,9 @@ services:
     env_file: ../.env
     environment:
       NODE_ENV: development
+      DATABASE_URL: postgresql://harmony:harmony@postgres:5432/harmony
+      REDIS_URL: redis://redis:6379
+      MEDIA_SERVER_URL: http://harmony-media:3001
     ports:
       - "3000:3000"
     volumes:
