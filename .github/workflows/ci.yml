@@ -83,6 +83,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: bunx prisma generate
+        working-directory: backend
+        env:
+          DATABASE_URL: "file:./dummy.db"
+
       - name: Build shared
         run: bun run build:shared
 
