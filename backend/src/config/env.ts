@@ -1,11 +1,8 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  // Database
-  DATABASE_URL: z.string().url(),
-
-  // Redis
-  REDIS_URL: z.string().default('redis://localhost:6379'),
+  // Database (SQLite file path, e.g. file:/data/harmony.db)
+  DATABASE_URL: z.string().default('file:/data/harmony.db'),
 
   // Auth
   JWT_ACCESS_SECRET: z.string().min(32),
@@ -37,7 +34,8 @@ const envSchema = z.object({
   MEDIASOUP_ANNOUNCED_IP: z.string().default('127.0.0.1'),
   MEDIASOUP_RTC_MIN_PORT: z.coerce.number().default(40000),
   MEDIASOUP_RTC_MAX_PORT: z.coerce.number().default(40100),
-  MEDIA_SERVER_URL: z.string().default('http://harmony-media:3001'),
+  MEDIA_SERVER_URL: z.string().default('http://localhost:3001'),
+  MEDIA_PORT: z.coerce.number().default(3001),
 
   // Push Notifications
   VAPID_PUBLIC_KEY: z.string().default(''),
@@ -48,7 +46,6 @@ const envSchema = z.object({
   APP_NAME: z.string().default('Harmony'),
   APP_URL: z.string().default('http://localhost'),
   PORT: z.coerce.number().default(3000),
-  MEDIA_PORT: z.coerce.number().default(3001),
 });
 
 export type Env = z.infer<typeof envSchema>;

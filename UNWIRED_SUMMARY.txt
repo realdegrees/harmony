@@ -1,0 +1,229 @@
+================================================================================
+                  HARMONY UNWIRED FEATURES - EXECUTIVE SUMMARY
+================================================================================
+
+ANALYSIS DATE: 2026-04-04
+SCOPE: Complete frontend/backend/shared codebase analysis
+TOTAL UNWIRED ITEMS FOUND: 20+
+
+================================================================================
+                              CRITICAL FINDINGS
+================================================================================
+
+🔴 HIGH PRIORITY (Blocking issues):
+───────────────────────────────────────────────────────────────────────────────
+
+1. MISSING BACKEND ENDPOINT: POST /api/auth/change-password
+   - Frontend calls it in: Settings.svelte and auth.svelte.ts
+   - Backend: NOT IMPLEMENTED ❌
+   - Impact: Users cannot change passwords
+   - Fix: Add handler to backend/src/auth/routes.ts
+
+2. MISSING BACKEND ENDPOINT: POST /api/users/me/avatar
+   - Frontend calls it in: Settings.svelte
+   - Backend: NOT IMPLEMENTED ❌
+   - Impact: Avatar upload feature broken
+   - Fix: Add handler to backend/src/users/routes.ts or media/routes.ts
+
+3. MISSING WEBSOCKET HANDLER: user:updated event
+   - Defined in: shared/types/ws-events.ts
+   - Frontend listener: NOT IMPLEMENTED ❌
+   - Impact: User profile changes won't sync across clients
+   - Fix: Add ws.on<UserUpdatedPayload>('user:updated', ...) to stores/auth.svelte.ts
+
+4. MISSING WEBSOCKET HANDLER: voice:producer-closed event
+   - Defined in: shared/types/ws-events.ts
+   - Frontend listener: NOT IMPLEMENTED ❌
+   - Impact: UI won't update when users stop producing video/audio
+   - Fix: Add handler to stores/voice.svelte.ts
+
+================================================================================
+                         UNUSED FRONTEND COMPONENTS
+================================================================================
+
+Six production-ready components exist but are never imported:
+
+1. ✓ Tooltip.svelte (82 lines)
+   - Configurable position, delay, arrow styling
+   - Location: components/ui/Tooltip.svelte
+   - Use in: Any buttons/icons that need hover tooltips
+
+2. ✓ Dropdown.svelte (154 lines)
+   - Keyboard nav, click-outside handling, accessible
+   - Location: components/ui/Dropdown.svelte
+   - Use in: Forms, settings, dropdowns
+
+3. ✓ Badge.svelte (37 lines)
+   - Overlay notification badges with count
+   - Location: components/ui/Badge.svelte
+   - Use in: ChannelList for unread indicators
+
+4. ✓ ReactionPicker.svelte (103 lines)
+   - Quick reactions + emoji picker modal
+   - Location: components/chat/ReactionPicker.svelte
+   - Use in: Replace inline reaction code in Message.svelte
+
+5. ✓ GifPicker.svelte (330 lines)
+   - Trending, search, favorites, pagination
+   - Location: components/chat/GifPicker.svelte
+   - Use in: MessageInput as GIF insert option
+
+6. ✓ StatusSelector.svelte (128 lines)
+   - Status selector (ONLINE, BUSY, APPEAR_OFFLINE)
+   - Location: components/user/StatusSelector.svelte
+   - Use in: Header or user profile area
+
+TOTAL CODE: ~750 lines of unused, tested UI components
+
+================================================================================
+                       UNUSED UTILITY MODULES
+================================================================================
+
+1. ✓ embed.ts (150 lines)
+   - Functions: detectEmbeds(), isImageUrl(), isGif(), isVideoUrl()
+   - Auto-detects images, videos, GIFs, YouTube links
+   - Location: utils/embed.ts
+   - Should be used in: MessageList or Embed.svelte to auto-parse links
+   - Related unused: Embed.svelte component (receives no data)
+
+================================================================================
+                    UNUSED BACKEND API ENDPOINTS
+================================================================================
+
+COMPLETELY ORPHANED (implemented but no frontend calls):
+───────────────────────────────────────────────────────────────────────────────
+
+1. ROLE MANAGEMENT (6 endpoints) - backend/src/roles/routes.ts
+   ✓ GET /api/roles
+   ✓ POST /api/roles
+   ✓ PATCH /api/roles/:id
+   ✓ DELETE /api/roles/:id
+   ✓ POST /api/roles/:id/assign
+   ✓ DELETE /api/roles/:id/assign/:userId
+   
+   Status: Fully implemented with permission checks
+   Missing: Complete frontend UI for role management
+   Impact: Admins cannot manage roles
+   Priority: MEDIUM - requires significant UI implementation
+
+2. POST /api/auth/logout
+   Status: Implemented (3 lines, returns success)
+   Used: Frontend clears tokens locally instead
+   Priority: LOW - stateless auth, endpoint not necessary
+
+3. PATCH /api/users/me/status (REST version)
+   Status: Implemented
+   Used: Frontend uses WebSocket 'presence:update' instead
+   Priority: LOW - WebSocket alternative works fine
+
+PARTIALLY ORPHANED (implemented but not fully utilized):
+───────────────────────────────────────────────────────────────────────────────
+
+4. GIPHY FAVORITES (3 endpoints) - backend/src/media/routes.ts
+   ✓ POST /api/giphy/favorites
+   ✓ GET /api/giphy/favorites
+   ✓ DELETE /api/giphy/favorites/:id
+   
+   Status: Implemented in backend
+   Used: Frontend stores in localStorage instead
+   Impact: Favorites not synced across devices
+   Priority: LOW - works but suboptimal
+
+================================================================================
+                   WEBSOCKET EVENTS ANALYSIS
+================================================================================
+
+SERVER EVENTS NOT LISTENED TO IN FRONTEND:
+───────────────────────────────────────────────────────────────────────────────
+
+1. user:updated
+   Type: { type: 'user:updated'; data: UserUpdatedPayload }
+   Status: NOT HANDLED ❌
+   Should be handled in: stores/auth.svelte.ts
+
+2. voice:producer-closed
+   Type: { type: 'voice:producer-closed'; data: VoiceProducerClosedPayload }
+   Status: NOT HANDLED ❌
+   Should be handled in: stores/voice.svelte.ts
+
+SERVER EVENTS PROPERLY HANDLED:
+───────────────────────────────────────────────────────────────────────────────
+
+✓ Messages: new, updated, deleted
+✓ Typing: update
+✓ Presence: changed
+✓ Voice: user-joined, user-left, state-update, transport-created, produced,
+         new-producer, consumed
+✓ Streams: started, stopped
+✓ Soundboard: playing
+✓ Notifications: new
+✓ Channels: created, updated, deleted
+✓ Error: error
+Total handled: 20 events ✓
+
+================================================================================
+                          STATISTICS
+================================================================================
+
+Components:
+  - Total defined: 35 Svelte components
+  - Never used: 6 components
+  - Unused rate: 17%
+  - Lines of unused code: ~750 lines
+
+Stores:
+  - Total: 7 stores
+  - All used: 7/7 ✓
+  - Unused rate: 0%
+
+Utility modules:
+  - Total: 4 modules
+  - Never used: 1 (embed.ts)
+  - Unused rate: 25%
+
+Backend endpoints:
+  - Total: 50+ endpoints
+  - Never called from frontend: 8+ endpoints
+  - Unused rate: 16%
+
+WebSocket events:
+  - Server events defined: 23
+  - Server events handled: 21
+  - Unhandled rate: 9%
+
+================================================================================
+                       IMPLEMENTATION ROADMAP
+================================================================================
+
+SPRINT 1 (URGENT - Next 48 hours):
+────────────────────────────────────────────────────────────────────────────
+[ ] Implement POST /api/auth/change-password
+[ ] Implement POST /api/users/me/avatar
+[ ] Add ws.on('user:updated') handler
+[ ] Add ws.on('voice:producer-closed') handler
+
+SPRINT 2 (This week):
+────────────────────────────────────────────────────────────────────────────
+[ ] Import and use Badge component in ChannelList
+[ ] Replace Message.svelte inline reactions with ReactionPicker
+[ ] Add GifPicker to MessageInput
+[ ] Add StatusSelector to Header
+[ ] Integrate embed.ts with Embed.svelte
+
+SPRINT 3 (This month):
+────────────────────────────────────────────────────────────────────────────
+[ ] Implement complete role management admin panel
+[ ] Wire GIPHY favorites to backend
+[ ] Add Tooltip to buttons where appropriate
+[ ] Add Dropdown to forms where appropriate
+[ ] Complete user profile sync features
+
+================================================================================
+                        FILES GENERATED
+================================================================================
+
+1. UNWIRED_FEATURES_REPORT.md - Comprehensive overview (this format)
+2. UNWIRED_FEATURES_DETAILED.md - Detailed file paths and snippets
+3. UNWIRED_SUMMARY.txt - This executive summary
+
+================================================================================

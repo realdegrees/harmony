@@ -9,17 +9,16 @@ import {
 import { handleWsMessage, setWsServer } from './ws/router';
 import { ensureDefaultRoles } from './roles/service';
 import { db } from './db/client';
+import { startMediaServer, stopMediaServer } from './voice/media-process';
 import type { ServerWebSocket } from 'bun';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
 // ---------------------------------------------------------------------------
-// Static file serving — serves the frontend build when present in the container.
-// In production the built output is copied to frontend/build by the Dockerfile.
+// Static file serving — serves the frontend build when present.
+// In production the built output lives at frontend/build next to this package.
 // ---------------------------------------------------------------------------
 
-// Resolve the frontend build directory relative to this file.
-// In production the built output is copied to frontend/build by the Dockerfile.
 const FRONTEND_BUILD = join(import.meta.dir, '../../frontend/build');
 const SERVE_STATIC = existsSync(FRONTEND_BUILD);
 
@@ -47,7 +46,6 @@ const MIME_TYPES: Record<string, string> = {
 async function serveStatic(pathname: string): Promise<Response | null> {
   if (!SERVE_STATIC) return null;
 
-  // Sanitise path to prevent directory traversal
   const safe = pathname.replace(/\.\./g, '').replace(/\/+/g, '/');
   const filePath = join(FRONTEND_BUILD, safe);
   const file = Bun.file(filePath);
@@ -56,7 +54,6 @@ async function serveStatic(pathname: string): Promise<Response | null> {
     const ext = filePath.slice(filePath.lastIndexOf('.')).toLowerCase();
     const contentType = MIME_TYPES[ext] ?? 'application/octet-stream';
 
-    // Cache-bust hashed assets for a year; everything else no-cache
     const isHashed = /\.[a-f0-9]{8,}\.(js|css|woff2?)$/.test(filePath);
     const cacheControl = isHashed
       ? 'public, max-age=31536000, immutable'
@@ -87,10 +84,11 @@ async function main() {
 
   await ensureDefaultRoles();
 
-  // Print the ephemeral admin token to stdout so an operator can copy it
-  // into Settings → Account → Claim Admin to self-grant admin privileges.
   const { printAdminToken } = await import('./auth/admin-token');
   printAdminToken();
+
+  // Start the mediasoup media server as a managed subprocess
+  await startMediaServer();
 
   console.log(`Starting ${env.APP_NAME} on port ${env.PORT}...`);
 
@@ -127,7 +125,6 @@ async function main() {
       const staticResponse = await serveStatic(url.pathname);
       if (staticResponse) return staticResponse;
 
-      // If no static build is present, return 404 for non-API routes
       return handleRequest(req);
     },
 
@@ -149,15 +146,31 @@ async function main() {
       },
       perMessageDeflate: true,
       maxPayloadLength: 1024 * 1024, // 1 MB
-      idleTimeout: 120, // 2 minutes
+      idleTimeout: 120,
       sendPings: true,
     },
   });
 
-  // Provide the server reference to the WS router for channel pub/sub
   setWsServer(server);
 
   console.log(`${env.APP_NAME} running at http://localhost:${server.port}`);
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down...');
+    stopMediaServer();
+    server.stop();
+    db.$disconnect();
+    process.exit(0);
+  });
+
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down...');
+    stopMediaServer();
+    server.stop();
+    db.$disconnect();
+    process.exit(0);
+  });
 }
 
 main().catch((err) => {

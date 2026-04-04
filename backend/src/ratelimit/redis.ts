@@ -1,12 +1,8 @@
-import Redis from 'ioredis';
-import { env } from '../config/env';
+import RedisMock from 'ioredis-mock';
 
-let redis: Redis;
+const redis = new RedisMock();
 
-export function getRedis(): Redis {
-  if (!redis) {
-    redis = new Redis(env.REDIS_URL);
-  }
+function getRedis(): RedisMock {
   return redis;
 }
 
@@ -28,7 +24,6 @@ export async function checkRateLimit(
   const currentCount = (countResults?.[1]?.[1] as number) ?? 0;
 
   if (currentCount >= maxRequests) {
-    // Rejected — do not record this request so it doesn't extend the window.
     return {
       allowed: false,
       remaining: 0,

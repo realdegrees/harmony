@@ -1,11 +1,7 @@
-import Redis from 'ioredis';
-import { env } from '../config/env';
+import RedisMock from 'ioredis-mock';
 
-let redis: Redis;
+const redis = new RedisMock();
 
-export function getRedis(): Redis {
-  if (!redis) {
-    redis = new Redis(env.REDIS_URL);
-  }
+export function getRedis(): RedisMock {
   return redis;
 }

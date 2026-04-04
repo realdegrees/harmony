@@ -1,8 +1,7 @@
 name: harmony
 
 services:
-  # ── App Server (Bun - backend API + WebSocket) ────────────────────────────────
-  harmony-app:
+  harmony:
     build:
       context: ..
       dockerfile: docker/app/Dockerfile
@@ -11,81 +10,18 @@ services:
       NODE_ENV: production
     ports:
       - "3000:3000"
+      # RTC ports for mediasoup — clients connect to these directly for WebRTC
+      - "${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}:${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}/udp"
+      - "${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}:${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}/tcp"
     volumes:
-      - uploads:/data/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      - data:/data
     restart: unless-stopped
-    networks:
-      - harmony-net
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 30s
 
-  # ── Media Server (Node.js + mediasoup) ────────────────────────────────────────
-  harmony-media:
-    build:
-      context: ..
-      dockerfile: docker/media/Dockerfile
-    env_file: ../.env
-    environment:
-      NODE_ENV: production
-    ports:
-      # RTC ports must be exposed directly on the host for WebRTC.
-      # Clients connect to these directly.
-      - "${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}:${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}/udp"
-      - "${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}:${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}/tcp"
-    restart: unless-stopped
-    networks:
-      - harmony-net
-
-  # ── PostgreSQL 16 ─────────────────────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: harmony
-      POSTGRES_USER: harmony
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-harmony}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U harmony -d harmony"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-    networks:
-      - harmony-net
-
-  # ── Redis 7 ───────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - redisdata:/data
-    restart: unless-stopped
-    networks:
-      - harmony-net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-# ── Named Volumes ─────────────────────────────────────────────────────────────
 volumes:
-  pgdata:
-  redisdata:
-  uploads:
-
-# ── Networks ──────────────────────────────────────────────────────────────────
-networks:
-  harmony-net:
-    driver: bridge
+  data:

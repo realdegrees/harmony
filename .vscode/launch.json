@@ -2,8 +2,8 @@
   "version": "0.2.0",
   "compounds": [
     {
-      "name": "Full Stack",
-      "configurations": ["Backend", "Frontend", "Media Server"],
+      "name": "Dev",
+      "configurations": ["Backend", "Frontend"],
       "stopAll": true,
       "presentation": {
         "group": "harmony",
@@ -38,20 +38,6 @@
       "presentation": {
         "group": "harmony",
         "order": 3
-      }
-    },
-    {
-      "name": "Media Server",
-      "type": "node",
-      "request": "launch",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["tsx", "media/src/index.ts"],
-      "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/.env",
-      "console": "integratedTerminal",
-      "presentation": {
-        "group": "harmony",
-        "order": 4
       }
     }
   ]

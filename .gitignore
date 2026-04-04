@@ -48,3 +48,8 @@ logs/
 
 # Bun
 # bun.lockb is tracked for reproducible installs
+
+# Local data (SQLite DB + uploads)
+data/
+uploads/
+*.db

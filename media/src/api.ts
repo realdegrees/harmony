@@ -4,7 +4,7 @@ import { createWebRtcTransport, getTransport, closeTransport } from './transport
 import { createProducer, getProducer, closeProducer } from './producer-manager.js';
 import { createConsumer, getConsumer, resumeConsumer, closeConsumer } from './consumer-manager.js';
 
-export const apiRouter = Router();
+export const apiRouter: import('express').Router = Router();
 
 // Health check
 apiRouter.get('/health', (_req, res) => {
