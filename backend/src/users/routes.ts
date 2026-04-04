@@ -2,6 +2,7 @@ import { updateUserSchema } from '@harmony/shared/validation';
 import { serializePermissions } from '@harmony/shared/constants';
 import { getUserProfile, getAllUsers, updateUser } from './service';
 import { json, error } from '../utils/response';
+import { db } from '../db/client';
 
 // Serialize a UserProfile so that role permissions are JSON-safe strings.
 function serializeProfile(profile: Awaited<ReturnType<typeof getUserProfile>>) {
@@ -93,10 +94,36 @@ export async function handleUserRoute(
   userId: string,
 ): Promise<Response | null> {
   const method = req.method.toUpperCase();
+  const url = new URL(req.url);
 
   // GET /api/users
   if (path === '/api/users' && method === 'GET') {
     return handleListUsers(req);
+  }
+
+  // GET /api/users/search?q=...&limit=N
+  if (path === '/api/users/search' && method === 'GET') {
+    const q = url.searchParams.get('q') ?? '';
+    const limit = parseInt(url.searchParams.get('limit') ?? '10', 10);
+    if (!q.trim()) return json([]);
+
+    try {
+      const users = await db.user.findMany({
+        where: {
+          OR: [
+            { username: { contains: q, mode: 'insensitive' } },
+            { displayName: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true, username: true, displayName: true, avatarPath: true },
+        take: Math.min(limit, 25),
+        orderBy: { username: 'asc' },
+      });
+      return json(users);
+    } catch (e) {
+      console.error(e);
+      return error('Search failed', 500);
+    }
   }
 
   // GET /api/users/me
@@ -107,6 +134,37 @@ export async function handleUserRoute(
   // PATCH /api/users/me
   if (path === '/api/users/me' && method === 'PATCH') {
     return handleUpdateMe(req, userId);
+  }
+
+  // PATCH /api/users/me/status
+  if (path === '/api/users/me/status' && method === 'PATCH') {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return error('Invalid JSON body', 400);
+    }
+
+    const status = (body as Record<string, unknown>)?.status;
+    if (!status || !['ONLINE', 'OFFLINE', 'APPEAR_OFFLINE', 'BUSY'].includes(status as string)) {
+      return error('Invalid status', 400);
+    }
+
+    try {
+      const updated = await db.user.update({
+        where: { id: userId },
+        data: { status: status as any },
+        select: { id: true, username: true, displayName: true, avatarPath: true, status: true, createdAt: true, updatedAt: true },
+      });
+      return json({
+        ...updated,
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+      });
+    } catch (e) {
+      console.error(e);
+      return error('Failed to update status', 500);
+    }
   }
 
   // GET /api/users/:id  — must come after /me check

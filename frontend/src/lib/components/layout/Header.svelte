@@ -2,8 +2,11 @@
   import { ui } from '$lib/stores/ui.svelte';
   import { notifications } from '$lib/stores/notifications.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
+  import SearchBar from '$lib/components/search/SearchBar.svelte';
+  import SearchResults from '$lib/components/search/SearchResults.svelte';
   import type { ChannelWithUnread } from '@harmony/shared/types/channel';
   import type { User } from '@harmony/shared/types/user';
+  import type { SearchFilters } from '@harmony/shared/types/message';
   import { presence } from '$lib/stores/presence.svelte';
 
   interface Props {
@@ -14,10 +17,12 @@
   let { channel = null, dmUser = null }: Props = $props();
 
   const unreadCount = $derived(notifications.unreadNotificationCount);
+  let searchOpen = $state(false);
+  let searchFilters = $state<SearchFilters | null>(null);
 </script>
 
 <header
-  class="flex items-center gap-3 px-4 bg-bg-primary border-b border-divider shrink-0 shadow-sm z-10"
+  class="relative flex items-center gap-3 px-4 bg-bg-primary border-b border-divider shrink-0 shadow-sm z-10"
   style="height: var(--header-height);"
 >
   <!-- Left: Channel/DM info -->
@@ -67,8 +72,13 @@
   <div class="flex items-center gap-1 shrink-0">
     <!-- Search -->
     <button
-      class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+      class="p-1.5 rounded transition-colors
+        {searchOpen
+          ? 'text-text-primary bg-bg-active'
+          : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'}"
+      onclick={() => { searchOpen = !searchOpen; }}
       aria-label="Search"
+      aria-pressed={searchOpen}
       title="Search"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -121,3 +131,18 @@
     </div>
   </div>
 </header>
+
+<!-- Search panel (slides in below header) -->
+{#if searchOpen}
+  <div class="absolute right-0 top-full z-40 w-full max-w-md">
+    <SearchBar
+      onsearch={(filters) => { searchFilters = filters; }}
+    />
+    {#if searchFilters}
+      <SearchResults
+        filters={searchFilters}
+        onclose={() => { searchOpen = false; searchFilters = null; }}
+      />
+    {/if}
+  </div>
+{/if}

@@ -154,6 +154,33 @@ export async function handleChannelRoute(
 ): Promise<Response | null> {
   const method = req.method.toUpperCase();
 
+  const url = new URL(req.url);
+
+  // -------------------------------------------------------------------------
+  // GET /api/channels/search?q=...&limit=N
+  // -------------------------------------------------------------------------
+  if (path === '/api/channels/search' && method === 'GET') {
+    const q = url.searchParams.get('q') ?? '';
+    const limit = parseInt(url.searchParams.get('limit') ?? '10', 10);
+    if (!q.trim()) return json([]);
+
+    try {
+      const results = await db.channel.findMany({
+        where: {
+          name: { contains: q, mode: 'insensitive' },
+          type: { in: ['TEXT', 'VOICE'] },
+        },
+        select: { id: true, name: true, type: true },
+        take: Math.min(limit, 25),
+        orderBy: { name: 'asc' },
+      });
+      return json(results);
+    } catch (e) {
+      console.error(e);
+      return error('Search failed', 500);
+    }
+  }
+
   // -------------------------------------------------------------------------
   // GET /api/channels
   // -------------------------------------------------------------------------

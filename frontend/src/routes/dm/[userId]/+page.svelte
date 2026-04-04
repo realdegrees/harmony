@@ -29,15 +29,15 @@
       dmUser = await api.get<User>(`/users/${targetUserId}`);
 
       // Get or create DM channel
-      const dm = await api.post<DirectMessageChannel>('/channels/dm', {
+      const result = await api.post<{ channel: { id: string; name: string; type: string }; isNew: boolean }>('/dms', {
         userId: targetUserId,
       });
 
-      dmChannelId = dm.channelId;
-      channels.setActiveChannel(dm.channelId);
+      dmChannelId = result.channel.id;
+      channels.setActiveChannel(result.channel.id);
 
       // Make sure it's in the DM list
-      const alreadyIn = channels.dmChannels.some((d) => d.channelId === dm.channelId);
+      const alreadyIn = channels.dmChannels.some((d) => d.channelId === result.channel.id);
       if (!alreadyIn) {
         await channels.fetchDmChannels();
       }
