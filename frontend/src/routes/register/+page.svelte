@@ -171,7 +171,7 @@
     width: 46%;
     min-height: 100svh;
     padding: 3rem;
-    background-color: #1a1b1e;
+    background: rgba(8,9,12,0.97);
     overflow: hidden;
     flex-shrink: 0;
   }
@@ -212,10 +212,11 @@
     width: 72px;
     height: 72px;
     border-radius: 20px;
-    background: linear-gradient(135deg, #5865f2, #7b87f5);
+    background: linear-gradient(135deg, #5c6ef0, #8b9cf8);
     color: white;
     box-shadow:
-      0 8px 32px rgba(88, 101, 242, 0.4),
+      0 8px 32px rgba(92, 110, 240, 0.45),
+      0 0 60px rgba(92, 110, 240, 0.15),
       inset 0 1px 0 rgba(255,255,255,0.15);
   }
 
@@ -308,7 +309,7 @@
     align-items: center;
     justify-content: center;
     padding: 3rem 2rem;
-    background-color: #2b2d31;
+    background: rgba(14,15,20,0.95);
     overflow-y: auto;
   }
 
@@ -345,10 +346,11 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    border-radius: 8px;
-    background: rgba(218, 55, 60, 0.12);
-    border: 1px solid rgba(218, 55, 60, 0.3);
-    color: #da373c;
+    border-radius: 12px;
+    background: rgba(229, 62, 68, 0.10);
+    border: 1px solid rgba(229, 62, 68, 0.25);
+    backdrop-filter: blur(8px);
+    color: #e53e44;
     font-size: 0.875rem;
     line-height: 1.4;
   }

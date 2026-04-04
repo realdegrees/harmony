@@ -9,6 +9,7 @@
   import type { ChannelWithUnread } from '@harmony/shared/types/channel';
   import type { VoiceParticipant } from '@harmony/shared/types/voice';
   import { presence } from '$lib/stores/presence.svelte';
+  import { voice } from '$lib/stores/voice.svelte';
 
   interface Props {
     items: ChannelWithUnread[];
@@ -70,10 +71,10 @@
         oncontextmenu={(e) => handleContextMenu(e, channel)}
       >
         <button
-          class="w-full flex items-center gap-1.5 px-2 py-1 mx-2 rounded transition-colors text-left
+          class="w-full flex items-center gap-1.5 px-2 py-1.5 mx-2 rounded-lg transition-all duration-100 text-left
             {activeChannelId === channel.id
-              ? 'bg-bg-active text-text-primary'
-              : 'text-text-muted hover:bg-bg-hover hover:text-text-secondary'}"
+              ? 'bg-white/[0.10] text-text-primary shadow-sm'
+              : 'text-text-muted hover:bg-white/[0.05] hover:text-text-secondary'}"
           style="width: calc(100% - 16px);"
           onclick={() => handleClick(channel)}
           aria-label="{type === ChannelType.TEXT ? '#' : '🔊'} {channel.name}"
@@ -100,7 +101,7 @@
           <!-- Unread badge -->
           {#if channel.unreadCount > 0}
             <span
-              class="min-w-[18px] h-[18px] px-1 bg-danger text-white text-[11px] font-bold rounded-full flex items-center justify-center shrink-0"
+              class="min-w-[18px] h-[18px] px-1 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(92,110,240,0.5)]"
               aria-label="{channel.unreadCount} unread"
             >
               {channel.unreadCount > 99 ? '99+' : channel.unreadCount}
@@ -113,13 +114,16 @@
           <ul class="ml-6 list-none p-0 mt-0.5">
             {#each participants as p (p.userId)}
               {@const vs = p.voiceState}
+              {@const speaking = voice.speakingUsers.has(p.userId)}
               <li class="flex items-center gap-1 px-2 py-0.5 text-xs text-text-muted">
-                <Avatar
-                  src={p.user?.avatarPath ?? null}
-                  username={p.user?.displayName || p.user?.username || p.userId}
-                  size="xs"
-                  status={presence.getPresence(p.userId)}
-                />
+                <div class="rounded-full {speaking ? 'ring-1 ring-success/70' : ''}">
+                  <Avatar
+                    src={p.user?.avatarPath ?? null}
+                    username={p.user?.displayName || p.user?.username || p.userId}
+                    size="xs"
+                    status={presence.getPresence(p.userId)}
+                  />
+                </div>
                 <span class="truncate flex-1">{p.user?.displayName || p.user?.username || p.userId}</span>
                 <span class="flex items-center gap-0.5 shrink-0">
                   {#if vs?.muted || vs?.serverMuted}

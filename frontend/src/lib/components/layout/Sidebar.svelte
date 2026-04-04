@@ -101,14 +101,14 @@
 </script>
 
 <aside
-  class="flex flex-col bg-bg-secondary shrink-0 overflow-hidden"
+  class="flex flex-col shrink-0 overflow-hidden bg-white/[0.03] backdrop-blur-xl border-r border-white/[0.06]"
   style="width: var(--sidebar-width);"
 >
   <!-- Server name header -->
-  <div class="px-4 flex items-center justify-between border-b border-divider shadow-sm"
+  <div class="px-4 flex items-center justify-between border-b border-white/[0.06]"
     style="height: var(--header-height);"
   >
-    <h1 class="font-semibold text-text-primary truncate text-base">{APP_NAME}</h1>
+    <h1 class="font-bold text-text-primary truncate text-base tracking-tight">{APP_NAME}</h1>
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-muted shrink-0" aria-hidden="true">
       <polyline points="6 9 12 15 18 9"></polyline>
     </svg>
@@ -119,9 +119,9 @@
 
     <!-- Create Category button -->
     <div class="flex items-center justify-between px-4 pb-1">
-      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Channels</span>
+      <span class="text-[10px] font-semibold uppercase tracking-widest text-text-muted">Channels</span>
       <button
-        class="text-text-muted hover:text-text-primary transition-colors"
+        class="text-text-muted hover:text-text-primary transition-colors p-0.5 rounded hover:bg-white/[0.06]"
         onclick={createCategory}
         aria-label="Create category"
         title="Create category"
@@ -163,7 +163,7 @@
         <!-- Category header -->
         <div class="flex items-center justify-between px-2 py-1 group">
           <button
-            class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-text-muted hover:text-text-secondary transition-colors flex-1 min-w-0"
+            class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-text-muted hover:text-text-secondary transition-colors flex-1 min-w-0"
             onclick={() => channels.toggleCategoryCollapsed(cat.id)}
             aria-expanded={!cat.collapsed}
             aria-label="Toggle {cat.name}"
@@ -226,10 +226,10 @@
         {#each channels.dmChannels as dm}
           {@const otherUserId = dm.user1Id === auth.user?.id ? dm.user2Id : dm.user1Id}
           <button
-            class="w-full flex items-center gap-2 px-2 py-1 mx-2 rounded group transition-colors text-left
+            class="w-full flex items-center gap-2 px-2 py-1.5 mx-2 rounded-lg group transition-all duration-100 text-left
               {channels.activeChannelId === dm.channelId
-                ? 'bg-bg-active text-text-primary'
-                : 'text-text-muted hover:bg-bg-hover hover:text-text-secondary'}"
+                ? 'bg-white/[0.10] text-text-primary shadow-sm'
+                : 'text-text-muted hover:bg-white/[0.05] hover:text-text-secondary'}"
             style="width: calc(100% - 16px);"
             onclick={() => {
               channels.setActiveChannel(dm.channelId);
@@ -256,7 +256,7 @@
 
   <!-- User panel at bottom -->
   {#if auth.user}
-    <div class="flex items-center gap-2 px-2 py-2 bg-bg-tertiary border-t border-divider">
+    <div class="flex items-center gap-2 px-2.5 py-2.5 border-t border-white/[0.06] bg-white/[0.02]">
       <Avatar
         src={auth.user.avatarPath}
         username={auth.user.displayName || auth.user.username}
@@ -264,7 +264,7 @@
         status={userStatus}
       />
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-medium text-text-primary truncate leading-tight">
+        <p class="text-sm font-semibold text-text-primary truncate leading-tight">
           {auth.user.displayName || auth.user.username}
         </p>
         <p class="text-xs text-text-muted truncate leading-tight">
@@ -272,7 +272,7 @@
         </p>
       </div>
       <button
-        class="text-text-muted hover:text-text-primary transition-colors p-1 rounded hover:bg-bg-hover shrink-0"
+        class="text-text-muted hover:text-text-primary transition-all duration-100 p-1.5 rounded-lg hover:bg-white/[0.08] shrink-0"
         onclick={() => goto('/settings')}
         aria-label="User settings"
         title="User Settings"

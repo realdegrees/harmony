@@ -95,8 +95,8 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="group relative flex gap-3 px-4 py-0.5 transition-colors rounded
-    {isHighlighted ? 'bg-warning/10' : 'hover:bg-bg-hover/50'}
+  class="group relative flex gap-3 px-4 py-0.5 transition-all duration-100 rounded-lg
+    {isHighlighted ? 'bg-warning/10' : 'hover:bg-white/[0.03]'}
     {isCompact ? 'py-0.5' : 'pt-2'}"
   onmouseenter={() => (hovered = true)}
   onmouseleave={() => (hovered = false)}
@@ -153,7 +153,7 @@
     {#if editing}
       <div class="mt-1">
         <textarea
-          class="w-full bg-bg-input text-text-primary rounded px-3 py-2 text-sm resize-none border border-brand focus:outline-none"
+          class="w-full bg-white/[0.06] backdrop-blur-sm text-text-primary rounded-xl px-3.5 py-2.5 text-sm resize-none border border-brand/50 focus:outline-none focus:border-brand focus:shadow-[0_0_0_3px_rgba(92,110,240,0.15)]"
           rows="3"
           bind:value={editContent}
           onkeydown={submitEdit}
@@ -208,13 +208,13 @@
   <!-- Hover action bar -->
   {#if hovered && !editing}
     <div
-      class="absolute right-4 -top-3 flex items-center gap-0.5 bg-bg-secondary border border-divider rounded shadow-lg px-1 py-0.5 z-10"
+      class="absolute right-4 -top-3 flex items-center gap-0.5 bg-white/[0.08] backdrop-blur-xl border border-white/[0.10] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)] px-1 py-0.5 z-10"
       role="toolbar"
       aria-label="Message actions"
     >
       <!-- Reply -->
       <button
-        class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
         onclick={() => ui.setReplyTo(message)}
         aria-label="Reply"
         title="Reply"
@@ -227,7 +227,7 @@
 
       <!-- React -->
       <button
-        class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
         aria-label="Add reaction"
         title="Add Reaction"
       >
@@ -242,7 +242,7 @@
       <!-- Edit (own message only) -->
       {#if isOwn}
         <button
-          class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+          class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all duration-100"
           onclick={startEdit}
           aria-label="Edit message"
           title="Edit Message"

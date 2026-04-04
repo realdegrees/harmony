@@ -23,7 +23,7 @@
 </script>
 
 <header
-  class="relative flex items-center gap-3 px-4 bg-bg-primary border-b border-divider shrink-0 shadow-sm z-10"
+  class="relative flex items-center gap-3 px-4 bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06] shrink-0 z-10"
   style="height: var(--header-height);"
 >
   <!-- Left: Channel/DM info -->
@@ -86,10 +86,10 @@
   <div class="flex items-center gap-1 shrink-0">
     <!-- Search -->
     <button
-      class="p-1.5 rounded transition-colors
+      class="p-1.5 rounded-lg transition-all duration-100
         {searchOpen
-          ? 'text-text-primary bg-bg-active'
-          : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'}"
+          ? 'text-text-primary bg-white/[0.12]'
+          : 'text-text-muted hover:text-text-primary hover:bg-white/[0.07]'}"
       onclick={() => { searchOpen = !searchOpen; }}
       aria-label="Search"
       aria-pressed={searchOpen}
@@ -104,10 +104,10 @@
     <!-- Member list toggle (only for channels, not DMs) -->
     {#if !dmUser}
       <button
-        class="p-1.5 rounded transition-colors
+        class="p-1.5 rounded-lg transition-all duration-100
           {ui.memberListOpen
-            ? 'text-text-primary bg-bg-active'
-            : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'}"
+            ? 'text-text-primary bg-white/[0.12]'
+            : 'text-text-muted hover:text-text-primary hover:bg-white/[0.07]'}"
         onclick={() => ui.toggleMemberList()}
         aria-label="Toggle member list"
         aria-pressed={ui.memberListOpen}
@@ -125,7 +125,7 @@
     <!-- Notifications bell -->
     <div class="relative">
       <button
-        class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.07] transition-all duration-100"
         aria-label="Notifications{unreadCount > 0 ? ` (${unreadCount} unread)` : ''}"
         title="Notifications"
       >
@@ -149,8 +149,8 @@
 <!-- Search panel — fixed so it escapes overflow:hidden on parent containers -->
 {#if searchOpen}
   <div
-    class="fixed right-4 z-50 w-full max-w-md shadow-2xl"
-    style="top: var(--header-height);"
+    class="fixed right-4 z-50 w-full max-w-md shadow-[0_16px_48px_rgba(0,0,0,0.5)] rounded-2xl overflow-hidden border border-white/[0.08]"
+    style="top: calc(var(--header-height) + 8px);"
   >
     <SearchBar
       onsearch={(filters) => { searchFilters = filters; }}

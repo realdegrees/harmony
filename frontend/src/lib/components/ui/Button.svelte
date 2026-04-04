@@ -24,14 +24,17 @@
   }: Props = $props();
 
   const baseClasses =
-    'inline-flex items-center justify-center font-medium rounded transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50 select-none';
+    'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/70 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent disabled:cursor-not-allowed disabled:opacity-40 select-none';
 
   const variantClasses: Record<NonNullable<Props['variant']>, string> = {
-    primary: 'bg-brand text-white hover:bg-brand-hover active:bg-brand-active',
-    secondary: 'bg-bg-accent text-text-primary hover:bg-bg-hover active:bg-bg-active',
-    danger: 'bg-danger text-white hover:bg-red-700 active:bg-red-800',
+    primary:
+      'bg-brand text-white hover:bg-brand-hover active:bg-brand-active shadow-[0_2px_16px_rgba(92,110,240,0.35)] hover:shadow-[0_2px_24px_rgba(92,110,240,0.5)]',
+    secondary:
+      'bg-white/[0.07] text-text-primary border border-white/[0.08] hover:bg-white/[0.11] active:bg-white/[0.05] backdrop-blur-sm',
+    danger:
+      'bg-danger/90 text-white hover:bg-danger active:bg-red-700 shadow-[0_2px_12px_rgba(229,62,68,0.3)]',
     ghost:
-      'bg-transparent text-text-secondary hover:bg-bg-hover hover:text-text-primary active:bg-bg-active',
+      'bg-transparent text-text-secondary hover:bg-white/[0.06] hover:text-text-primary active:bg-white/[0.04]',
   };
 
   const sizeClasses: Record<NonNullable<Props['size']>, string> = {

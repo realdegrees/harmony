@@ -48,8 +48,8 @@
   bind:this={menuEl}
   class="
     fixed z-[100]
-    bg-bg-floating border border-white/5
-    rounded-md shadow-2xl py-1
+    bg-white/[0.07] backdrop-blur-2xl border border-white/[0.10]
+    rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.5)] py-1.5
     min-w-[160px] max-w-[240px]
     focus:outline-none
   "
@@ -59,19 +59,19 @@
 >
   {#each items as item (item.label)}
     {#if item.divider}
-      <hr class="my-1 border-divider" />
+      <hr class="my-1.5 border-white/[0.07]" />
     {:else}
       <button
         role="menuitem"
         class="
           w-full flex items-center gap-2.5
           px-3 py-1.5 text-left
-          text-sm rounded-sm mx-1
-          transition-colors duration-100
+          text-sm rounded-lg mx-1
+          transition-all duration-100
           focus:outline-none
           {item.danger
-            ? 'text-danger hover:bg-danger hover:text-white'
-            : 'text-text-secondary hover:bg-brand hover:text-white'}
+            ? 'text-danger hover:bg-danger/15 hover:text-danger'
+            : 'text-text-secondary hover:bg-white/[0.08] hover:text-text-primary'}
         "
         style="width: calc(100% - 0.5rem);"
         onclick={() => {

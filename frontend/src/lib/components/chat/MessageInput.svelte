@@ -129,7 +129,7 @@
 <div class="px-4 pb-4 shrink-0">
   <!-- Reply bar -->
   {#if replyingTo}
-    <div class="flex items-center gap-2 px-3 py-1.5 mb-1 bg-bg-secondary/60 rounded-t-lg border border-b-0 border-divider text-sm">
+    <div class="flex items-center gap-2 px-3 py-1.5 mb-1 bg-white/[0.04] backdrop-blur-sm rounded-t-xl border border-b-0 border-white/[0.08] text-sm">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-text-muted shrink-0" aria-hidden="true">
         <polyline points="9 17 4 12 9 7"></polyline>
         <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
@@ -140,7 +140,7 @@
       </span>
       <span class="flex-1 truncate text-text-muted text-xs">{replyingTo.content}</span>
       <button
-        class="ml-auto text-text-muted hover:text-text-primary transition-colors p-0.5 rounded hover:bg-bg-hover shrink-0"
+        class="ml-auto text-text-muted hover:text-text-primary transition-all p-0.5 rounded-lg hover:bg-white/[0.08] shrink-0"
         onclick={() => ui.clearReply()}
         aria-label="Cancel reply"
       >
@@ -155,16 +155,16 @@
   <!-- Input box -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="flex items-end gap-2 bg-bg-input rounded-lg px-3 py-2 transition-colors
-      {dragOver ? 'ring-2 ring-brand' : ''}
-      {replyingTo ? 'rounded-t-none' : ''}"
+    class="flex items-end gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/[0.08] px-3 py-2 transition-all duration-150
+      {dragOver ? 'ring-2 ring-brand/60 border-brand/40' : ''}
+      {replyingTo ? 'rounded-b-xl rounded-t-none' : 'rounded-xl'}"
     ondragover={(e) => { e.preventDefault(); dragOver = true; }}
     ondragleave={() => (dragOver = false)}
     ondrop={handleDrop}
   >
     <!-- Attachment button -->
     <label
-      class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors cursor-pointer shrink-0"
+      class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-all duration-100 cursor-pointer shrink-0"
       aria-label="Add attachment"
       title="Add Attachment"
     >
@@ -213,7 +213,7 @@
 
       <!-- Emoji button -->
       <button
-        class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-all duration-100"
         aria-label="Add emoji"
         title="Add Emoji"
       >
@@ -227,10 +227,10 @@
 
       <!-- Send button -->
       <button
-        class="p-1.5 rounded transition-colors
+        class="p-1.5 rounded-lg transition-all duration-100
           {canSend
-            ? 'text-brand hover:text-brand-hover hover:bg-brand/10'
-            : 'text-text-muted opacity-50 cursor-not-allowed'}"
+            ? 'text-brand hover:text-brand-hover hover:bg-brand/15 shadow-[0_0_12px_rgba(92,110,240,0.2)]'
+            : 'text-text-muted opacity-40 cursor-not-allowed'}"
         onclick={handleSend}
         disabled={!canSend}
         aria-label="Send message"

@@ -43,13 +43,14 @@
     onclick={handleBackdropClick}
   >
     <!-- Dark overlay -->
-    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
 
     <!-- Modal panel -->
     <div
       class="
-        relative z-10 w-full max-w-md rounded-lg
-        bg-bg-secondary shadow-2xl
+        relative z-10 w-full max-w-md rounded-2xl
+        bg-white/[0.06] backdrop-blur-2xl
+        border border-white/[0.10] shadow-[0_32px_80px_rgba(0,0,0,0.6)]
         flex flex-col max-h-[90vh]
         {className}
       "
@@ -105,7 +106,7 @@
 
       <!-- Footer -->
       {#if footer}
-        <div class="px-6 py-4 border-t border-divider shrink-0">
+        <div class="px-6 py-4 border-t border-white/[0.07] shrink-0">
           {@render footer()}
         </div>
       {/if}

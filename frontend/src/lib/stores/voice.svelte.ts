@@ -1,6 +1,8 @@
 import { ws } from '$lib/api/ws';
 import { getStreamByType } from '$lib/voice/streaming';
+import { getMicrophoneStream, watchSpeaking } from '$lib/voice/audio';
 import { RtcSession } from '$lib/voice/rtc';
+import { auth } from '$lib/stores/auth.svelte';
 import type { VoiceParticipant, StreamType, StreamConfig, MediaServerTransport } from '@harmony/shared/types/voice';
 import type {
   VoiceUserJoinedPayload,
@@ -39,6 +41,15 @@ class VoiceStore {
 
   // The local screen/camera capture stream
   private activeStream: MediaStream | null = null;
+
+  // Microphone stream used for speaking detection
+  private micStream: MediaStream | null = null;
+
+  // Cleanup functions for watchSpeaking pollers (keyed by userId)
+  private speakingWatchers = new Map<string, () => void>();
+
+  // Set of userIds currently speaking
+  speakingUsers = $state(new Set<string>());
 
   // mediasoup session — one per voice channel connection
   private rtc: RtcSession | null = null;
@@ -84,6 +95,12 @@ class VoiceStore {
       const streams = new Map(this.remoteStreams);
       streams.delete(data.userId);
       this.remoteStreams = streams;
+      // Stop their speaking watcher
+      this.speakingWatchers.get(data.userId)?.();
+      this.speakingWatchers.delete(data.userId);
+      const next = new Set(this.speakingUsers);
+      next.delete(data.userId);
+      this.speakingUsers = next;
     });
 
     ws.on<VoiceStateUpdatePayload>('voice:state-update', (data) => {
@@ -128,6 +145,11 @@ class VoiceStore {
         const streams = new Map(this.remoteStreams);
         streams.set(data.userId, stream);
         this.remoteStreams = streams;
+
+        // Watch the received audio stream for speaking detection
+        if (data.producerInfo.kind === 'audio') {
+          this.startSpeakingWatcher(data.userId, stream);
+        }
       } catch (err) {
         console.warn('[voice] Failed to consume producer from', data.userId, err);
       }
@@ -171,6 +193,20 @@ class VoiceStore {
     this.rtc = new RtcSession();
     this.currentChannelId = id;
     ws.send({ type: 'voice:join', data: { channelId: id } });
+
+    // Start monitoring the local mic for speaking detection (best-effort)
+    if (typeof navigator !== 'undefined') {
+      getMicrophoneStream(this.preferredMicrophoneId ?? undefined)
+        .then((stream) => {
+          this.micStream = stream;
+          if (auth.user?.id) {
+            this.startSpeakingWatcher(auth.user.id, stream);
+          }
+        })
+        .catch(() => {
+          // Mic not available — speaking indicator just won't work for self
+        });
+    }
   }
 
   leaveChannel(): void {
@@ -181,6 +217,16 @@ class VoiceStore {
       this.activeStream = null;
     }
 
+    if (this.micStream) {
+      this.micStream.getTracks().forEach((t) => t.stop());
+      this.micStream = null;
+    }
+
+    // Stop all speaking watchers
+    for (const cleanup of this.speakingWatchers.values()) cleanup();
+    this.speakingWatchers.clear();
+    this.speakingUsers = new Set();
+
     this.rtc?.dispose();
     this.rtc = null;
     this.remoteStreams = new Map();
@@ -190,6 +236,18 @@ class VoiceStore {
     this.localMuted = false;
     this.localDeafened = false;
     this.isStreaming = false;
+  }
+
+  private startSpeakingWatcher(userId: string, stream: MediaStream): void {
+    // Clean up any existing watcher for this user
+    this.speakingWatchers.get(userId)?.();
+    const cleanup = watchSpeaking(stream, (speaking) => {
+      const next = new Set(this.speakingUsers);
+      if (speaking) next.add(userId);
+      else next.delete(userId);
+      this.speakingUsers = next;
+    });
+    this.speakingWatchers.set(userId, cleanup);
   }
 
   toggleMute(): void {

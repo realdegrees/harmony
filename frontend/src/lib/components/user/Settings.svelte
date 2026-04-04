@@ -280,24 +280,24 @@
   ];
 </script>
 
-<div class="flex h-full bg-bg-primary overflow-hidden">
+<div class="flex h-full overflow-hidden">
   <!-- Sidebar nav -->
   <nav
-    class="w-56 shrink-0 bg-bg-secondary border-r border-divider flex flex-col py-4 px-2 gap-0.5"
+    class="w-56 shrink-0 bg-white/[0.03] backdrop-blur-xl border-r border-white/[0.06] flex flex-col py-4 px-2 gap-0.5"
     aria-label="Settings navigation"
   >
-    <p class="px-2 mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+    <p class="px-2 mb-2 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
       User Settings
     </p>
     {#each SECTIONS as section (section.id)}
       <button
         onclick={() => { activeSection = section.id; saveError = ''; saveSuccess = ''; }}
         class="
-          flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-medium
-          transition-colors duration-100
+          flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium
+          transition-all duration-100
           {activeSection === section.id
-            ? 'bg-bg-active text-text-primary'
-            : 'text-text-muted hover:bg-bg-hover hover:text-text-primary'}
+            ? 'bg-white/[0.10] text-text-primary shadow-sm'
+            : 'text-text-muted hover:bg-white/[0.06] hover:text-text-primary'}
         "
         role="tab"
         aria-selected={activeSection === section.id}
@@ -310,12 +310,12 @@
     {/each}
 
     <div class="mt-auto">
-      <div class="my-2 border-t border-divider"></div>
+      <div class="my-2 border-t border-white/[0.07]"></div>
       <button
         onclick={() => auth.logout()}
         class="
-          flex items-center gap-2.5 px-2 py-1.5 rounded text-sm font-medium w-full
-          text-danger hover:bg-danger/10 transition-colors duration-100
+          flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium w-full
+          text-danger hover:bg-danger/10 transition-all duration-100
         "
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="shrink-0" aria-hidden="true">
@@ -344,12 +344,12 @@
 
       <!-- Success/error banner -->
       {#if saveSuccess}
-        <div class="mb-4 px-4 py-2 rounded bg-success/20 text-success text-sm border border-success/30">
+        <div class="mb-4 px-4 py-2 rounded-xl bg-success/10 text-success text-sm border border-success/20 backdrop-blur-sm">
           {saveSuccess}
         </div>
       {/if}
       {#if saveError}
-        <div class="mb-4 px-4 py-2 rounded bg-danger/20 text-danger text-sm border border-danger/30">
+        <div class="mb-4 px-4 py-2 rounded-xl bg-danger/10 text-danger text-sm border border-danger/20 backdrop-blur-sm">
           {saveError}
         </div>
       {/if}
@@ -359,11 +359,11 @@
         <h1 class="text-2xl font-bold text-text-primary mb-6">My Account</h1>
 
         <!-- Profile card preview -->
-        <div class="rounded-xl bg-bg-secondary p-4 mb-6 relative overflow-hidden">
-          <div class="h-12 bg-gradient-to-r from-brand to-brand-hover rounded-lg mb-8"></div>
+        <div class="rounded-2xl bg-white/[0.05] backdrop-blur-sm border border-white/[0.08] p-4 mb-6 relative overflow-hidden">
+          <div class="h-12 bg-gradient-to-r from-brand/70 to-brand-hover/50 rounded-xl mb-8"></div>
           <div class="flex items-end gap-4 -mt-10 px-2">
             <div class="relative">
-              <div class="rounded-full border-4 border-bg-secondary overflow-hidden w-16 h-16 bg-bg-accent flex items-center justify-center">
+              <div class="rounded-full border-4 border-bg-primary overflow-hidden w-16 h-16 bg-white/[0.08] flex items-center justify-center">
                 {#if avatarPreview}
                   <img src={avatarPreview} alt="Preview" class="w-full h-full object-cover" />
                 {:else}
@@ -373,9 +373,9 @@
               <label
                 class="
                   absolute bottom-0 right-0 w-6 h-6 rounded-full
-                  bg-bg-accent border-2 border-bg-secondary
+                  bg-white/[0.15] border-2 border-bg-primary backdrop-blur-sm
                   flex items-center justify-center cursor-pointer
-                  hover:bg-bg-hover transition-colors
+                  hover:bg-white/[0.25] transition-all
                 "
                 title="Change avatar"
               >
@@ -425,7 +425,7 @@
       {:else if activeSection === 'account'}
         <h1 class="text-2xl font-bold text-text-primary mb-6">Account</h1>
 
-        <div class="bg-bg-secondary rounded-xl p-5 mb-6">
+        <div class="bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/[0.07] p-5 mb-6">
           <div class="grid grid-cols-2 gap-4">
             <div>
               <p class="text-xs font-semibold uppercase tracking-wide text-text-muted mb-1">Username</p>
@@ -478,7 +478,7 @@
       <!-- Appearance Section -->
       {:else if activeSection === 'appearance'}
         <h1 class="text-2xl font-bold text-text-primary mb-6">Appearance</h1>
-        <div class="bg-bg-secondary rounded-xl p-6 text-center text-text-muted">
+        <div class="bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/[0.07] p-6 text-center text-text-muted">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="mx-auto mb-3 opacity-30" aria-hidden="true">
             <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/>
           </svg>
@@ -497,7 +497,7 @@
         {/if}
 
         <!-- Microphone -->
-        <div class="bg-bg-secondary rounded-xl p-5 mb-4 space-y-4">
+        <div class="bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/[0.07] p-5 mb-4 space-y-4">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-text-muted">Microphone</h2>
 
           <div class="flex flex-col gap-1.5">
@@ -506,7 +506,7 @@
             </label>
             <select
               id="mic-select"
-              class="w-full rounded px-3 py-2 text-sm bg-bg-input text-text-primary border border-transparent focus:outline-none focus:border-brand transition-colors"
+              class="w-full rounded-xl px-3.5 py-2.5 text-sm bg-white/[0.05] backdrop-blur-sm text-text-primary border border-white/[0.07] focus:outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_rgba(92,110,240,0.15)] transition-all"
               value={voice.preferredMicrophoneId ?? ''}
               onchange={(e) => voice.setPreferredMicrophone((e.currentTarget as HTMLSelectElement).value || null)}
             >
@@ -544,7 +544,7 @@
         </div>
 
         <!-- Speaker -->
-        <div class="bg-bg-secondary rounded-xl p-5 space-y-4">
+        <div class="bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/[0.07] p-5 space-y-4">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-text-muted">Speaker / Headphones</h2>
 
           <div class="flex flex-col gap-1.5">
@@ -562,7 +562,7 @@
             {:else}
               <select
                 id="speaker-select"
-                class="w-full rounded px-3 py-2 text-sm bg-bg-input text-text-primary border border-transparent focus:outline-none focus:border-brand transition-colors"
+                class="w-full rounded-xl px-3.5 py-2.5 text-sm bg-white/[0.05] backdrop-blur-sm text-text-primary border border-white/[0.07] focus:outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_rgba(92,110,240,0.15)] transition-all"
                 value={voice.preferredSpeakerId ?? ''}
                 onchange={(e) => voice.setPreferredSpeaker((e.currentTarget as HTMLSelectElement).value || null)}
               >
@@ -590,7 +590,7 @@
 
         <div class="space-y-4">
           <!-- Push notifications -->
-          <div class="bg-bg-secondary rounded-xl p-4 flex items-start justify-between gap-4">
+          <div class="bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/[0.07] p-4 flex items-start justify-between gap-4">
             <div>
               <p class="text-sm font-semibold text-text-primary">Enable Push Notifications</p>
               <p class="text-xs text-text-muted mt-1">
@@ -618,7 +618,7 @@
           </div>
 
           <!-- Notification sounds -->
-          <div class="bg-bg-secondary rounded-xl p-4 flex items-start justify-between gap-4">
+          <div class="bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/[0.07] p-4 flex items-start justify-between gap-4">
             <div>
               <p class="text-sm font-semibold text-text-primary">Notification Sounds</p>
               <p class="text-xs text-text-muted mt-1">
@@ -655,7 +655,7 @@
             <p class="text-sm text-text-muted mt-1">The Harmony server this app connects to.</p>
           </div>
 
-          <div class="bg-bg-secondary rounded-xl p-4 space-y-3">
+          <div class="bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/[0.07] p-4 space-y-3">
             <div>
               <p class="text-xs font-semibold uppercase tracking-wide text-text-muted mb-1">Current Server</p>
               <p class="text-sm font-mono text-text-primary break-all">{getServerUrl() ?? '—'}</p>

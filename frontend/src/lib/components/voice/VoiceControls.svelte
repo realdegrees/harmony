@@ -45,10 +45,10 @@
 </script>
 
 {#if voice.currentChannelId}
-  <div class="bg-bg-secondary border-t border-divider">
+  <div class="bg-white/[0.02] border-t border-white/[0.06]">
     <!-- Voice Connected banner -->
     <div class="px-2 pt-2 pb-1">
-      <div class="flex items-center gap-2 px-2 py-1.5 rounded bg-bg-tertiary">
+      <div class="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.07]">
         <!-- Green voice icon -->
         <div class="flex items-center gap-1.5 flex-1 min-w-0">
           <svg
@@ -71,8 +71,8 @@
           onclick={handleDisconnect}
           title="Disconnect"
           class="
-            p-1 rounded text-text-muted hover:text-danger hover:bg-bg-hover
-            transition-colors duration-100 shrink-0
+            p-1 rounded-lg text-text-muted hover:text-danger hover:bg-danger/10
+            transition-all duration-100 shrink-0
           "
           aria-label="Disconnect from voice"
         >
@@ -92,11 +92,11 @@
         aria-label={voice.localMuted ? 'Unmute microphone' : 'Mute microphone'}
         aria-pressed={voice.localMuted}
         class="
-          flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded
-          transition-colors duration-100
+          flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl
+          transition-all duration-100
           {voice.localMuted
-            ? 'bg-danger/20 text-danger hover:bg-danger/30'
-            : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'}
+            ? 'bg-danger/15 text-danger border border-danger/20 hover:bg-danger/20'
+            : 'text-text-secondary hover:bg-white/[0.07] hover:text-text-primary'}
         "
       >
         {#if voice.localMuted}
@@ -118,11 +118,11 @@
         aria-label={voice.localDeafened ? 'Undeafen' : 'Deafen'}
         aria-pressed={voice.localDeafened}
         class="
-          flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded
-          transition-colors duration-100
+          flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl
+          transition-all duration-100
           {voice.localDeafened
-            ? 'bg-danger/20 text-danger hover:bg-danger/30'
-            : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'}
+            ? 'bg-danger/15 text-danger border border-danger/20 hover:bg-danger/20'
+            : 'text-text-secondary hover:bg-white/[0.07] hover:text-text-primary'}
         "
       >
         {#if voice.localDeafened}
@@ -148,11 +148,11 @@
         aria-label={voice.isStreaming ? 'Stop screen sharing' : 'Share screen'}
         aria-pressed={voice.isStreaming}
         class="
-          flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded
-          transition-colors duration-100 disabled:opacity-50 disabled:cursor-not-allowed
+          flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl
+          transition-all duration-100 disabled:opacity-40 disabled:cursor-not-allowed
           {voice.isStreaming
-            ? 'bg-brand/20 text-brand hover:bg-brand/30'
-            : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'}
+            ? 'bg-brand/15 text-brand border border-brand/20 hover:bg-brand/20'
+            : 'text-text-secondary hover:bg-white/[0.07] hover:text-text-primary'}
         "
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">

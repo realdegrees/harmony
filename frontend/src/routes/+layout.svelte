@@ -79,9 +79,9 @@
 <div class="h-screen flex overflow-hidden" onclick={handleGlobalClick}>
   {#if auth.isLoading}
     <!-- Loading splash -->
-    <div class="flex-1 flex items-center justify-center bg-bg-primary">
+    <div class="flex-1 flex items-center justify-center">
       <div class="flex flex-col items-center gap-4">
-        <div class="w-16 h-16 rounded-full bg-brand flex items-center justify-center">
+        <div class="w-16 h-16 rounded-2xl bg-brand/20 backdrop-blur-sm border border-brand/30 flex items-center justify-center shadow-[0_0_40px_rgba(92,110,240,0.3)]">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
@@ -101,7 +101,7 @@
   <!-- Global Context Menu -->
   {#if ui.contextMenu?.visible}
     <div
-      class="fixed z-[100] bg-bg-floating rounded-md shadow-xl border border-white/5 py-1 min-w-[180px]"
+      class="fixed z-[100] bg-white/[0.07] backdrop-blur-2xl rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.5)] border border-white/[0.10] py-1.5 min-w-[180px]"
       style="left: {ui.contextMenu.x}px; top: {ui.contextMenu.y}px;"
       role="menu"
     >
@@ -112,8 +112,8 @@
           <button
             class="w-full text-left px-3 py-1.5 text-sm rounded-sm flex items-center gap-2 transition-colors
               {item.danger
-                ? 'text-danger hover:bg-danger hover:text-white'
-                : 'text-text-secondary hover:bg-brand hover:text-white'}"
+                ? 'text-danger hover:bg-danger/15'
+                : 'text-text-secondary hover:bg-white/[0.08] hover:text-text-primary'}"
             role="menuitem"
             onclick={() => { item.action(); ui.hideContextMenu(); }}
           >

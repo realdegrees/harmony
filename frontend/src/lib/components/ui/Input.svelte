@@ -48,13 +48,14 @@
     {autocomplete}
     bind:value
     class="
-      w-full rounded px-3 py-2 text-sm
-      bg-bg-input text-text-primary placeholder:text-text-muted
-      border border-transparent
-      transition-colors duration-150
-      focus:outline-none focus:border-brand focus:ring-0
-      disabled:opacity-50 disabled:cursor-not-allowed
-      {error ? 'border-danger focus:border-danger' : ''}
+      w-full rounded-xl px-3.5 py-2.5 text-sm
+      bg-white/[0.05] backdrop-blur-sm
+      text-text-primary placeholder:text-text-muted
+      border border-white/[0.07]
+      transition-all duration-150
+      focus:outline-none focus:border-brand/60 focus:bg-white/[0.07] focus:shadow-[0_0_0_3px_rgba(92,110,240,0.15)]
+      disabled:opacity-40 disabled:cursor-not-allowed
+      {error ? 'border-danger/60 focus:border-danger/60 focus:shadow-[0_0_0_3px_rgba(229,62,68,0.15)]' : ''}
     "
     aria-invalid={error ? 'true' : undefined}
     aria-describedby={error && id ? `${id}-error` : undefined}

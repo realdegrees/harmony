@@ -13,6 +13,7 @@
 
   const participants = $derived(voice.participants.get(channelId) ?? []);
   const inThisChannel = $derived(voice.currentChannelId === channelId);
+  const speakingUsers = $derived(voice.speakingUsers);
 
   let focusedUserId = $state<string | null>(null);
 
@@ -128,29 +129,37 @@
         {#each participants as p (p.userId)}
           {@const vs = p.voiceState}
           {@const me = isMe(p)}
+          {@const speaking = speakingUsers.has(p.userId)}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
-            class="flex flex-col items-center gap-2 pt-3.5 pb-2.5 px-2 rounded-xl bg-bg-secondary
-                   border transition-colors duration-150 select-none
-                   {vs?.streaming
-                     ? 'border-brand cursor-pointer hover:bg-bg-hover'
-                     : me
-                       ? 'border-brand/30'
-                       : 'border-transparent'}"
+            class="flex flex-col items-center gap-2 pt-3.5 pb-2.5 px-2 rounded-2xl
+                   bg-white/[0.05] backdrop-blur-sm
+                   border transition-all duration-150 select-none
+                   {speaking
+                     ? 'border-success/60 shadow-[0_0_20px_rgba(47,182,122,0.2)]'
+                     : vs?.streaming
+                       ? 'border-brand/60 cursor-pointer hover:bg-white/[0.08] shadow-[0_0_16px_rgba(92,110,240,0.15)]'
+                       : me
+                         ? 'border-white/[0.12]'
+                         : 'border-white/[0.06] hover:border-white/[0.10]'}"
             onclick={() => { if (vs?.streaming) focusedUserId = p.userId; }}
             role={vs?.streaming ? 'button' : undefined}
             title={vs?.streaming ? `View ${p.user.displayName || p.user.username}'s screen` : undefined}
           >
-            <!-- Avatar + LIVE badge -->
+            <!-- Avatar + speaking ring + LIVE badge -->
             <div class="relative">
-              <div class="rounded-full">
+              <div class="rounded-full transition-all duration-150
+                {speaking ? 'ring-2 ring-success ring-offset-2 ring-offset-transparent shadow-[0_0_16px_rgba(47,182,122,0.5)]' : ''}">
                 <Avatar
                   src={p.user.avatarPath}
                   username={p.user.displayName || p.user.username}
                   size="lg"
                 />
               </div>
+              {#if speaking}
+                <span class="absolute inset-0 rounded-full ring-2 ring-success/40 animate-ping pointer-events-none" aria-hidden="true"></span>
+              {/if}
               {#if vs?.streaming}
                 <span class="absolute -bottom-1 left-1/2 -translate-x-1/2
                              bg-brand text-white text-[9px] font-extrabold tracking-wide

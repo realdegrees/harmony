@@ -34,10 +34,10 @@
   };
 
   const statusColors: Record<UserStatus, string> = {
-    [UserStatus.ONLINE]: 'bg-online',
-    [UserStatus.OFFLINE]: 'bg-offline',
+    [UserStatus.ONLINE]:         'bg-online shadow-[0_0_6px_rgba(47,182,122,0.6)]',
+    [UserStatus.OFFLINE]:        'bg-offline',
     [UserStatus.APPEAR_OFFLINE]: 'bg-offline',
-    [UserStatus.BUSY]: 'bg-busy',
+    [UserStatus.BUSY]:           'bg-busy shadow-[0_0_6px_rgba(229,62,68,0.5)]',
   };
 
   // Deterministic color from username for the fallback circle
@@ -85,7 +85,7 @@
         absolute bottom-0 right-0
         {statusDotSizes[size]}
         {statusColors[status]}
-        rounded-full border-bg-secondary
+        rounded-full border-bg-primary
       "
       aria-label="Status: {status.toLowerCase()}"
     ></span>

@@ -39,7 +39,7 @@
 
 {#if ui.memberListOpen}
   <aside
-    class="flex flex-col bg-bg-secondary border-l border-divider shrink-0 overflow-y-auto"
+    class="flex flex-col bg-white/[0.03] backdrop-blur-xl border-l border-white/[0.06] shrink-0 overflow-y-auto"
     style="width: var(--member-list-width);"
     aria-label="Member list"
   >
@@ -53,7 +53,7 @@
           {#each grouped.online as member (member.id)}
             {@const memberStatus = presence.getPresence(member.id)}
             <button
-              class="w-full flex items-center gap-2.5 px-3 py-1.5 hover:bg-bg-hover rounded mx-1 transition-colors text-left group"
+              class="w-full flex items-center gap-2.5 px-3 py-1.5 hover:bg-white/[0.06] rounded-lg mx-1 transition-all duration-100 text-left group"
               style="width: calc(100% - 8px);"
               onclick={(e) => openProfile(e, member)}
               aria-label="View {member.displayName || member.username}'s profile"
@@ -75,12 +75,12 @@
       <!-- Offline members -->
       {#if grouped.offline.length > 0}
         <div>
-          <p class="px-4 mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
+          <p class="px-4 mb-1 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
             Offline — {grouped.offline.length}
           </p>
           {#each grouped.offline as member (member.id)}
             <button
-              class="w-full flex items-center gap-2.5 px-3 py-1.5 hover:bg-bg-hover rounded mx-1 transition-colors text-left group opacity-50"
+              class="w-full flex items-center gap-2.5 px-3 py-1.5 hover:bg-white/[0.04] rounded-lg mx-1 transition-all duration-100 text-left group opacity-40"
               style="width: calc(100% - 8px);"
               onclick={(e) => openProfile(e, member)}
               aria-label="View {member.displayName || member.username}'s profile"
@@ -115,7 +115,7 @@
     onclick={() => (selectedMember = null)}
   ></div>
   <div
-    class="fixed z-50 bg-bg-floating rounded-lg shadow-2xl border border-white/5 p-4 w-60"
+    class="fixed z-50 bg-white/[0.07] backdrop-blur-2xl rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.5)] border border-white/[0.10] p-4 w-60"
     style="left: {Math.max(8, popupPosition.x)}px; top: {Math.min(popupPosition.y, window.innerHeight - 200)}px;"
     role="dialog"
     aria-label="User profile"
@@ -136,7 +136,7 @@
         </p>
       </div>
     </div>
-    <div class="border-t border-divider pt-3">
+    <div class="border-t border-white/[0.07] pt-3">
       <p class="text-xs text-text-muted">
         Member since {new Date(selectedMember.createdAt).toLocaleDateString()}
       </p>
