@@ -533,7 +533,7 @@ export async function handleWsMessage(
       // Soundboard
       // -----------------------------------------------------------------------
       case 'soundboard:play': {
-        const { clipId } = event.data;
+        const { clipId, duration } = event.data;
 
         const vs = await getUserVoiceState(userId);
         if (!vs) {
@@ -541,21 +541,31 @@ export async function handleWsMessage(
           return;
         }
 
-        // Resolve a display name for the clip
+        // Resolve a display name for the clip (server clips only; local clips
+        // won't be found in the DB so clipId is used as the fallback name)
         let clipName = clipId;
         try {
           const clip = await db.soundClip.findUnique({
             where: { id: clipId },
-            select: { name: true },
+            select: { name: true, duration: true },
           });
-          if (clip) clipName = clip.name;
+          if (clip) {
+            clipName = clip.name;
+          }
         } catch {
           // Non-fatal: use clipId as fallback
         }
 
         broadcastToChannel(server, vs.channelId, {
           type: 'soundboard:playing',
-          data: { channelId: vs.channelId, userId, clipName },
+          data: {
+            channelId: vs.channelId,
+            userId,
+            clipName,
+            // Forward the duration so clients can auto-clear their indicator
+            // exactly when the clip ends rather than using a fixed timeout.
+            duration: typeof duration === 'number' ? duration : undefined,
+          },
         });
 
         break;
