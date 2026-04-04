@@ -25,7 +25,9 @@ COPY desktop/package.json ./desktop/
 # Install all workspace dependencies
 RUN bun install
 
+COPY docker/app.dev/start.sh /start.sh
+RUN chmod +x /start.sh
+
 EXPOSE 3000
 
-# Hot-reload mode using Bun's built-in --hot flag
-CMD ["bun", "--hot", "run", "backend/src/index.ts"]
+CMD ["/start.sh"]

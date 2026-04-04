@@ -66,11 +66,15 @@ COPY backend/ ./backend/
 # Copy built frontend static assets
 COPY --from=frontend-build /app/frontend/build ./frontend/build
 
+# Copy startup script
+COPY docker/app/start.sh /start.sh
+
 # Create uploads directory
 RUN mkdir -p /data/uploads && \
     addgroup -g 1001 -S harmony && \
     adduser -u 1001 -S harmony -G harmony && \
-    chown -R harmony:harmony /app /data/uploads
+    chown -R harmony:harmony /app /data/uploads && \
+    chmod +x /start.sh
 
 USER harmony
 
@@ -78,4 +82,4 @@ EXPOSE 3000
 
 # Use tini as init to handle signals properly
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["bun", "run", "backend/src/index.ts"]
+CMD ["/start.sh"]

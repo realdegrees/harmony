@@ -11,7 +11,7 @@
     "prisma": "bunx prisma",
     "db:migrate": "bunx prisma migrate dev",
     "db:generate": "bunx prisma generate",
-    "db:seed": "bun run prisma/seed.ts",
+    "db:seed": "bun --env-file ../.env run src/db/seed.ts",
     "db:push": "bunx prisma db push"
   },
   "dependencies": {
