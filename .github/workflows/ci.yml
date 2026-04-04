@@ -11,7 +11,6 @@ on:
       - develop
 
 concurrency:
-  # Cancel in-progress runs for the same branch/PR to save resources
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
@@ -110,66 +109,99 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── Job 3: Build Desktop (DISABLED - uncomment to enable Tauri builds) ────────
-  # build-desktop:
-  #   name: Build Desktop (${{ matrix.platform }})
-  #   runs-on: ${{ matrix.runner }}
-  #   needs: lint
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       include:
-  #         - platform: linux
-  #           runner: ubuntu-latest
-  #         - platform: macos
-  #           runner: macos-latest
-  #         - platform: windows
-  #           runner: windows-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Setup Bun
-  #       uses: oven-sh/setup-bun@v2
-  #       with:
-  #         bun-version: latest
-  #
-  #     - name: Install Rust toolchain
-  #       uses: dtolnay/rust-toolchain@stable
-  #
-  #     - name: Install Linux system dependencies (Ubuntu only)
-  #       if: matrix.platform == 'linux'
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get install -y \
-  #           libgtk-3-dev \
-  #           libwebkit2gtk-4.0-dev \
-  #           libappindicator3-dev \
-  #           librsvg2-dev \
-  #           patchelf
-  #
-  #     - name: Cache Rust build artifacts
-  #       uses: swatinem/rust-cache@v2
-  #       with:
-  #         workspaces: desktop/src-tauri
-  #
-  #     - name: Install Bun dependencies
-  #       run: bun install --frozen-lockfile
-  #
-  #     - name: Build frontend (static adapter for Tauri)
-  #       run: bun run build:shared && bun --filter @harmony/frontend build:static
-  #
-  #     - name: Build Tauri desktop app
-  #       uses: tauri-apps/tauri-action@v0
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       with:
-  #         projectPath: desktop
-  #         tauriScript: bun run tauri
-  #
-  #     - name: Upload desktop artifacts
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: harmony-desktop-${{ matrix.platform }}
-  #         path: desktop/src-tauri/target/release/bundle/
-  #         retention-days: 7
+  # ── Job 3: Build Desktop ─────────────────────────────────────────────────────
+  # Runs only on main. Produces platform-native installers as downloadable
+  # artifacts (7-day retention). All three platforms run in parallel.
+  build-desktop:
+    name: Desktop (${{ matrix.platform }})
+    # Only run on pushes to main — not on develop or PRs
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ${{ matrix.runner }}
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-latest
+          - platform: windows
+            runner: windows-latest
+          - platform: macos
+            runner: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            shared/node_modules
+            backend/node_modules
+            frontend/node_modules
+            desktop/node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lockb', '**/package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build shared
+        run: bun run build:shared
+
+      - name: Build frontend (static adapter for Tauri)
+        run: BUILD_ADAPTER=static bun --filter @harmony/frontend build
+        env:
+          BUILD_ADAPTER: static
+
+      - name: Generate icons
+        run: bun run icons:generate
+
+      - name: Build Tauri desktop app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          tauriScript: bun run tauri
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: harmony-desktop-${{ matrix.platform }}
+          path: |
+            desktop/src-tauri/target/release/bundle/deb/*.deb
+            desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/release/bundle/rpm/*.rpm
+            desktop/src-tauri/target/release/bundle/msi/*.msi
+            desktop/src-tauri/target/release/bundle/nsis/*.exe
+            desktop/src-tauri/target/release/bundle/dmg/*.dmg
+          retention-days: 7
+          if-no-files-found: warn

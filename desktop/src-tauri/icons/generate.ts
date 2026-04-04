@@ -1,9 +1,18 @@
 /**
- * Generates all required Tauri icon PNGs from icon.svg.
- * Run with: bun desktop/src-tauri/icons/generate.ts
+ * Generates all required Tauri icon files from icon.svg.
  *
- * Requires @resvg/resvg-js (already in Bun's module cache).
- * Install if missing: bun add -g @resvg/resvg-js
+ * Outputs:
+ *   32x32.png        — Linux / Windows toolbar
+ *   128x128.png      — Linux app icon
+ *   128x128@2x.png   — Linux HiDPI (256×256)
+ *   icon.ico         — Windows (32×32 PNG wrapped in ICO container)
+ *   icon.icns        — macOS (ICNS container with 32, 64, 128, 256, 512px)
+ *
+ * Run with:
+ *   bun desktop/src-tauri/icons/generate.ts
+ *   (or: bun run icons:generate from the repo root)
+ *
+ * Requires @resvg/resvg-js (listed in root package.json dependencies).
  */
 
 import { Resvg } from '@resvg/resvg-js';
@@ -12,64 +21,104 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const svgPath = join(__dirname, 'icon.svg');
-const svgData = readFileSync(svgPath, 'utf-8');
+const svgData = readFileSync(join(__dirname, 'icon.svg'), 'utf-8');
 
-const sizes: { filename: string; size: number }[] = [
-  { filename: '32x32.png',       size: 32  },
-  { filename: '128x128.png',     size: 128 },
-  { filename: '128x128@2x.png',  size: 256 },
+// ---------------------------------------------------------------------------
+// Helper: render SVG to PNG buffer at a given size
+// ---------------------------------------------------------------------------
+function renderPng(size: number): Uint8Array {
+  return new Resvg(svgData, { fitTo: { mode: 'width', value: size } })
+    .render()
+    .asPng();
+}
+
+// ---------------------------------------------------------------------------
+// PNGs
+// ---------------------------------------------------------------------------
+const pngSizes: { filename: string; size: number }[] = [
+  { filename: '32x32.png',      size: 32  },
+  { filename: '128x128.png',    size: 128 },
+  { filename: '128x128@2x.png', size: 256 },
 ];
 
-for (const { filename, size } of sizes) {
-  const resvg = new Resvg(svgData, {
-    fitTo: { mode: 'width', value: size },
-  });
-  const png = resvg.render().asPng();
-  const outPath = join(__dirname, filename);
-  writeFileSync(outPath, png);
+for (const { filename, size } of pngSizes) {
+  writeFileSync(join(__dirname, filename), renderPng(size));
   console.log(`  ✓ ${filename} (${size}×${size})`);
 }
 
-// Generate a minimal placeholder .ico (32x32 PNG wrapped in ICO container)
-// A proper ICO is a container of PNG/BMP images. The simplest valid ICO
-// is just a 32x32 PNG embedded in the ICO format header.
-function pngToIco(pngBuffer: Uint8Array): Buffer {
-  const pngSize = pngBuffer.length;
-  // ICO header: 6 bytes
-  // Image directory entry: 16 bytes
-  // PNG data follows
-  const buf = Buffer.alloc(6 + 16 + pngSize);
-  let offset = 0;
-
-  // ICONDIR header
-  buf.writeUInt16LE(0, offset);       // reserved
-  buf.writeUInt16LE(1, offset + 2);   // type: 1 = icon
-  buf.writeUInt16LE(1, offset + 4);   // number of images
-  offset += 6;
-
+// ---------------------------------------------------------------------------
+// .ico (Windows) — 32×32 PNG embedded in ICO container
+// ---------------------------------------------------------------------------
+function buildIco(png: Uint8Array): Buffer {
+  const size = png.length;
+  const buf = Buffer.alloc(6 + 16 + size);
+  // ICONDIR
+  buf.writeUInt16LE(0, 0);  // reserved
+  buf.writeUInt16LE(1, 2);  // type: 1 = ICO
+  buf.writeUInt16LE(1, 4);  // image count
   // ICONDIRENTRY
-  buf.writeUInt8(32, offset);         // width (0 = 256)
-  buf.writeUInt8(32, offset + 1);     // height
-  buf.writeUInt8(0,  offset + 2);     // color count (0 = no palette)
-  buf.writeUInt8(0,  offset + 3);     // reserved
-  buf.writeUInt16LE(1, offset + 4);   // color planes
-  buf.writeUInt16LE(32, offset + 6);  // bits per pixel
-  buf.writeUInt32LE(pngSize, offset + 8);  // size of image data
-  buf.writeUInt32LE(6 + 16, offset + 12); // offset to image data
-  offset += 16;
-
-  // PNG data
-  Buffer.from(pngBuffer).copy(buf, offset);
-
+  buf.writeUInt8(32, 6);    // width
+  buf.writeUInt8(32, 7);    // height
+  buf.writeUInt8(0,  8);    // color count
+  buf.writeUInt8(0,  9);    // reserved
+  buf.writeUInt16LE(1,  10); // color planes
+  buf.writeUInt16LE(32, 12); // bits per pixel
+  buf.writeUInt32LE(size, 14); // image data size
+  buf.writeUInt32LE(22,   18); // image data offset (6 + 16)
+  Buffer.from(png).copy(buf, 22);
   return buf;
 }
 
-// Generate .ico from 32x32 PNG
-const resvg32 = new Resvg(svgData, { fitTo: { mode: 'width', value: 32 } });
-const png32 = resvg32.render().asPng();
-const icoBuffer = pngToIco(png32);
-writeFileSync(join(__dirname, 'icon.ico'), icoBuffer);
-console.log('  ✓ icon.ico (32×32 embedded PNG)');
+writeFileSync(join(__dirname, 'icon.ico'), buildIco(renderPng(32)));
+console.log('  ✓ icon.ico (32×32)');
+
+// ---------------------------------------------------------------------------
+// .icns (macOS) — ICNS container with multiple PNG sizes
+//
+// ICNS format: 4-byte magic + 4-byte total-length, then a series of chunks:
+//   4-byte OSType tag + 4-byte chunk-length (includes the 8-byte header) + data
+//
+// Tags used here (all accept PNG data in modern macOS):
+//   icp4  → 16×16
+//   icp5  → 32×32
+//   icp6  → 64×64
+//   ic07  → 128×128
+//   ic08  → 256×256
+//   ic09  → 512×512
+// ---------------------------------------------------------------------------
+function buildIcns(entries: { tag: string; png: Uint8Array }[]): Buffer {
+  const chunks = entries.map(({ tag, png }) => {
+    const chunkLen = 8 + png.length;
+    const chunk = Buffer.alloc(chunkLen);
+    chunk.write(tag, 0, 'ascii');
+    chunk.writeUInt32BE(chunkLen, 4);
+    Buffer.from(png).copy(chunk, 8);
+    return chunk;
+  });
+
+  const totalLen = 8 + chunks.reduce((s, c) => s + c.length, 0);
+  const out = Buffer.alloc(totalLen);
+  out.write('icns', 0, 'ascii');
+  out.writeUInt32BE(totalLen, 4);
+
+  let offset = 8;
+  for (const chunk of chunks) {
+    chunk.copy(out, offset);
+    offset += chunk.length;
+  }
+  return out;
+}
+
+const icnsEntries = [
+  { tag: 'icp4', png: renderPng(16)  },
+  { tag: 'icp5', png: renderPng(32)  },
+  { tag: 'icp6', png: renderPng(64)  },
+  { tag: 'ic07', png: renderPng(128) },
+  { tag: 'ic08', png: renderPng(256) },
+  { tag: 'ic09', png: renderPng(512) },
+];
+
+writeFileSync(join(__dirname, 'icon.icns'), buildIcns(icnsEntries));
+console.log('  ✓ icon.icns (16, 32, 64, 128, 256, 512)');
 
 console.log('\nAll icons generated.');

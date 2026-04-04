@@ -11,7 +11,7 @@
     "build:frontend": "bun --filter @harmony/frontend build",
     "build:backend": "bun --filter @harmony/backend build",
     "build:desktop": "bun run build:shared && bun --filter @harmony/frontend build:static && bun --filter @harmony/desktop build",
-    "build:desktop:docker": "docker compose -f docker/desktop/docker-compose.build.yml run --rm build",
+    "icons:generate": "bun desktop/src-tauri/icons/generate.ts",
     "lint": "bun run lint:shared && bun run lint:backend && bun run lint:frontend",
     "lint:shared": "bun --filter @harmony/shared lint",
     "lint:backend": "bun --filter @harmony/backend lint",
@@ -19,5 +19,8 @@
     "db:migrate": "bun --filter @harmony/backend prisma migrate dev",
     "db:generate": "bun --filter @harmony/backend prisma generate",
     "db:seed": "bun --filter @harmony/backend db:seed"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2"
   }
 }
