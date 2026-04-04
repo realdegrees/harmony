@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
+    unzip \
     ca-certificates \
     # Tauri 2 webkit requirement
     libwebkit2gtk-4.1-dev \
