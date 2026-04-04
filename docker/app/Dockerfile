@@ -35,9 +35,6 @@ COPY backend/prisma.config.ts ./backend/
 # Install all workspace deps (Bun handles shared/backend/frontend/desktop)
 RUN bun install --frozen-lockfile
 
-# Install media deps with npm so mediasoup compiles its native worker binary
-RUN cd media && npm install
-
 # -----------------------------------------------------------------------------
 # Stage 2: build frontend (SvelteKit static adapter)
 # -----------------------------------------------------------------------------
