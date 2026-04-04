@@ -61,6 +61,22 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
 
   // -------------------------------------------------------------------------
+  // Static uploads — served without authentication.
+  // Filenames are unguessable UUIDs so security-through-obscurity is
+  // sufficient here, and browser <img>/<video>/<a download> elements
+  // cannot attach Authorization headers.
+  // -------------------------------------------------------------------------
+  if (req.method === 'GET' && path.startsWith('/api/uploads/')) {
+    try {
+      const result = await handleMediaRoute(req, path, '');
+      if (result) return addCors(result);
+    } catch (err) {
+      console.error('[router] Upload serve error:', err);
+      return addCors(error('Internal server error', 500));
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // All other routes require a valid Bearer token
   // -------------------------------------------------------------------------
   const auth = await authenticateRequest(req);

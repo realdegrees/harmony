@@ -194,7 +194,7 @@
     <!-- Attachment button -->
     <Tooltip text="Add Attachment" position="top">
       <label
-        class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-all duration-100 cursor-pointer shrink-0"
+        class="inline-flex items-center justify-center p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-all duration-100 cursor-pointer shrink-0"
         aria-label="Add attachment"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

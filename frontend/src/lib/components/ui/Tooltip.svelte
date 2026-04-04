@@ -49,7 +49,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="relative inline-flex {className}"
+  class="relative inline-flex items-center {className}"
   onmouseenter={show}
   onmouseleave={hide}
   onfocus={show}

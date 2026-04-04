@@ -152,7 +152,7 @@
     {/if}
 
     <!-- Notifications bell + dropdown -->
-    <div class="relative">
+    <div class="relative flex items-center">
       <Badge count={unreadCount}>
         <button
           class="p-1.5 rounded-lg transition-all duration-100
