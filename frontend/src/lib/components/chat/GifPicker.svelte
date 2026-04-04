@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { GiphyGif } from '@harmony/shared/types/api';
+  import type { GiphyGif, GiphySearchResponse } from '@harmony/shared/types/api';
   import { api } from '$lib/api/client';
   import { getFavoriteGifs, saveFavoriteGif, deleteFavoriteGif } from '$lib/utils/local-storage';
 
@@ -35,9 +35,9 @@
     isLoading = true;
     nextOffset = 0;
     try {
-      const res = await api.get<{ gifs: GiphyGif[]; next?: string }>('/giphy/trending?limit=20');
+      const res = await api.get<GiphySearchResponse>('/giphy/trending?limit=20');
       gifs = res.gifs;
-      hasMore = !!res.next;
+      hasMore = res.gifs.length === 20;
     } catch {
       gifs = [];
     } finally {
@@ -59,11 +59,11 @@
     isLoading = true;
     nextOffset = 0;
     try {
-      const res = await api.get<{ gifs: GiphyGif[]; next?: string }>(
-        `/giphy/search?query=${encodeURIComponent(query)}&limit=20&offset=0`
+      const res = await api.get<GiphySearchResponse>(
+        `/giphy/search?q=${encodeURIComponent(query)}&limit=20&offset=0`
       );
       gifs = res.gifs;
-      hasMore = !!res.next;
+      hasMore = res.gifs.length === 20;
     } catch {
       gifs = [];
     } finally {
@@ -77,11 +77,11 @@
     nextOffset += 20;
     try {
       const path = searchQuery
-        ? `/giphy/search?query=${encodeURIComponent(searchQuery)}&limit=20&offset=${nextOffset}`
+        ? `/giphy/search?q=${encodeURIComponent(searchQuery)}&limit=20&offset=${nextOffset}`
         : `/giphy/trending?limit=20&offset=${nextOffset}`;
-      const res = await api.get<{ gifs: GiphyGif[]; next?: string }>(path);
+      const res = await api.get<GiphySearchResponse>(path);
       gifs = [...gifs, ...res.gifs];
-      hasMore = !!res.next;
+      hasMore = res.gifs.length === 20;
     } catch {
       hasMore = false;
     } finally {

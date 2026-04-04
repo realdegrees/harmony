@@ -15,15 +15,17 @@
     "db:push": "bunx prisma db push"
   },
   "dependencies": {
+    "@giphy/js-fetch-api": "^5.7.0",
+    "@giphy/js-types": "^5.1.0",
     "@harmony/shared": "workspace:*",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
-    "pg": "^8.13.0",
-    "jose": "^6.0.0",
     "ioredis": "^5.4.0",
-    "zod": "^3.23.0",
+    "jose": "^6.0.0",
+    "mime-types": "^2.1.35",
+    "pg": "^8.13.0",
     "web-push": "^3.6.0",
-    "mime-types": "^2.1.35"
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.4",

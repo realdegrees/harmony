@@ -9,6 +9,8 @@
       "name": "@harmony/backend",
       "version": "0.0.1",
       "dependencies": {
+        "@giphy/js-fetch-api": "^5.7.0",
+        "@giphy/js-types": "^5.1.0",
         "@harmony/shared": "workspace:*",
         "@prisma/adapter-pg": "^7.6.0",
         "@prisma/client": "^7.6.0",
@@ -39,6 +41,8 @@
       "name": "@harmony/frontend",
       "version": "0.0.1",
       "dependencies": {
+        "@giphy/js-fetch-api": "^5.7.0",
+        "@giphy/js-types": "^5.1.0",
         "@harmony/shared": "workspace:*",
         "mediasoup-client": "^3.18.7",
       },
@@ -142,6 +146,12 @@
     "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.25.12", "", { "os": "win32", "cpu": "ia32" }, "sha512-HkqnmmBoCbCwxUKKNPBixiWDGCpQGVsrQfJoVGYLPT41XWF8lHuE5N6WhVia2n4o5QK5M4tYr21827fNhi4byQ=="],
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.12", "", { "os": "win32", "cpu": "x64" }, "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="],
+
+    "@giphy/js-fetch-api": ["@giphy/js-fetch-api@5.7.0", "", { "dependencies": { "@giphy/js-types": "*", "@giphy/js-util": "*" } }, "sha512-5W8j7QUEnWRhW2KKlRhwHNCz0HwUeW0SlFryKFrqzE5XB8kjoAwZ2GvwtLNnkpjN0cniLE+bSGAzMKcL5Bt5Vg=="],
+
+    "@giphy/js-types": ["@giphy/js-types@5.1.0", "", {}, "sha512-BZYCDtYNRR7cUWkbDLB4wmm3qmWMsVCQdUiBNOfmZ3yAazCgygKJoDI/5Rq4CK5MBaOc5LVdF8viC2WtoBdaPA=="],
+
+    "@giphy/js-util": ["@giphy/js-util@5.2.0", "", { "dependencies": { "@giphy/js-types": "*", "uuid": "^9.0.0" } }, "sha512-Qt7pGh2cqiNmXLeWAgb459wK8+BuMLtIxTfg4ZksnPHPsLthiHT9hhzs2QhqUh7Pp/HOq+Cbv2etGDfnq+xiKA=="],
 
     "@harmony/backend": ["@harmony/backend@workspace:backend"],
 
@@ -870,6 +880,8 @@
     "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "unpipe": ["unpipe@1.0.0", "", {}, "sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ=="],
+
+    "uuid": ["uuid@9.0.1", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA=="],
 
     "valibot": ["valibot@1.2.0", "", { "peerDependencies": { "typescript": ">=5" }, "optionalPeers": ["typescript"] }, "sha512-mm1rxUsmOxzrwnX5arGS+U4T25RdvpPjPN4yR0u9pUBov9+zGVtO84tif1eY4r6zWxVxu3KzIyknJy3rxfRZZg=="],
 

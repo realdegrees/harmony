@@ -11,6 +11,8 @@
     "lint": "eslint src/ --ext .ts,.svelte && svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@giphy/js-fetch-api": "^5.7.0",
+    "@giphy/js-types": "^5.1.0",
     "@harmony/shared": "workspace:*",
     "mediasoup-client": "^3.18.7"
   },
