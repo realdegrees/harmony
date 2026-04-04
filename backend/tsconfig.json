@@ -8,19 +8,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "rootDir": "src",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "types": ["bun-types"],
     "paths": {
       "@harmony/shared/*": ["../shared/*"]
     }
   },
-  "include": ["src/**/*.ts", "prisma/**/*.ts"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../shared" }
-  ]
+  "include": ["src/**/*.ts", "prisma/**/*.ts", "../shared/**/*.ts"],
+  "exclude": ["node_modules", "dist", "../shared/node_modules"]
 }

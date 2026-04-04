@@ -72,7 +72,7 @@
     stopCurrentClip();
 
     playingId = clip.id;
-    ws.send({ type: 'soundboard:play', data: { clipId: clip.id, duration: clip.duration } });
+    ws.send({ type: 'soundboard:play', data: { clipId: clip.id } });
     setTimeout(() => { if (playingId === clip.id) playingId = null; }, (clip.duration * 1000) + 500);
   }
 
@@ -95,7 +95,7 @@
     const reader = new FileReader();
     reader.onload = () => {
       const b64 = (reader.result as string).split(',')[1];
-      ws.send({ type: 'soundboard:play', data: { clipId: sound.id, clipData: b64, duration: sound.duration } });
+      ws.send({ type: 'soundboard:play', data: { clipId: sound.id, clipData: b64 } });
     };
     reader.readAsDataURL(sound.blob);
     await audio.play();

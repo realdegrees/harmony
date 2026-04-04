@@ -9,7 +9,7 @@
   import type { User } from '@harmony/shared/types/user';
   import type { DirectMessageChannel } from '@harmony/shared/types/channel';
 
-  const userId = $derived($page.params.userId);
+  const userId = $derived($page.params.userId as string);
 
   let dmUser = $state<User | null>(null);
   let dmChannelId = $state<string | null>(null);

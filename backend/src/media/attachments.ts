@@ -109,12 +109,11 @@ export async function createPendingAttachment(
   await db.attachment.create({
     data: {
       id,
-      messageId: null,
       filename: file.name,
       path: storedPath,
       mimeType,
       size: file.size,
-    },
+    } as any,
   });
 
   return { id, path: storedPath };

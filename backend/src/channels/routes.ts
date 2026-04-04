@@ -167,7 +167,7 @@ export async function handleChannelRoute(
     try {
       const results = await db.channel.findMany({
         where: {
-          name: { contains: q, mode: 'insensitive' },
+          name: { contains: q },
           type: { in: ['TEXT', 'VOICE'] },
         },
         select: { id: true, name: true, type: true },

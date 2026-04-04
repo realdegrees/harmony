@@ -24,6 +24,7 @@ import type {
   VoiceNewProducerPayload,
   VoiceProducerClosedPayload,
 } from '@harmony/shared/types/ws-events';
+import type { DtlsParameters, RtpParameters, AppData, MediaKind } from 'mediasoup-client/types';
 
 // Lazy-import mediasoup-client at runtime to avoid SSR issues
 type MediasoupDevice = import('mediasoup-client').types.Device;
@@ -91,36 +92,29 @@ export async function createSendTransport(serverTransport: MediaServerTransport)
     dtlsParameters: serverTransport.dtlsParameters as import('mediasoup-client').types.DtlsParameters,
   });
 
-  // When mediasoup-client wants to connect the transport
-  sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+  sendTransport.on('connect', (
+    { dtlsParameters }: { dtlsParameters: DtlsParameters },
+    callback: () => void,
+    errback: (err: Error) => void,
+  ) => {
     try {
-      ws.send({
-        type: 'voice:connect-transport',
-        data: { transportId: serverTransport.transportId, dtlsParameters },
-      });
-      // In a real implementation, wait for server ACK before calling callback
+      ws.send({ type: 'voice:connect-transport', data: { transportId: serverTransport.transportId, dtlsParameters } });
       callback();
-    } catch (e) {
-      errback(e as Error);
-    }
+    } catch (e) { errback(e as Error); }
   });
 
-  // When mediasoup-client wants to produce (send media)
-  sendTransport.on('produce', ({ kind, rtpParameters, appData }, callback, errback) => {
+  sendTransport.on('produce', (
+    { kind, rtpParameters, appData }: { kind: MediaKind; rtpParameters: RtpParameters; appData: AppData },
+    callback: (p: { id: string }) => void,
+    errback: (err: Error) => void,
+  ) => {
     try {
-      // We need a producerId from the server — handle via WS
       const handler = ws.on<VoiceProducedPayload>('voice:produced', ({ producerId }) => {
-        handler(); // unsubscribe
+        handler();
         callback({ id: producerId });
       });
-
-      ws.send({
-        type: 'voice:produce',
-        data: { transportId: serverTransport.transportId, kind, rtpParameters, appData: appData as Record<string, unknown> },
-      });
-    } catch (e) {
-      errback(e as Error);
-    }
+      ws.send({ type: 'voice:produce', data: { transportId: serverTransport.transportId, kind, rtpParameters, appData: appData as Record<string, unknown> } });
+    } catch (e) { errback(e as Error); }
   });
 }
 
@@ -137,16 +131,15 @@ export async function createRecvTransport(serverTransport: MediaServerTransport)
     dtlsParameters: serverTransport.dtlsParameters as import('mediasoup-client').types.DtlsParameters,
   });
 
-  recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+  recvTransport.on('connect', (
+    { dtlsParameters }: { dtlsParameters: DtlsParameters },
+    callback: () => void,
+    errback: (err: Error) => void,
+  ) => {
     try {
-      ws.send({
-        type: 'voice:connect-transport',
-        data: { transportId: serverTransport.transportId, dtlsParameters },
-      });
+      ws.send({ type: 'voice:connect-transport', data: { transportId: serverTransport.transportId, dtlsParameters } });
       callback();
-    } catch (e) {
-      errback(e as Error);
-    }
+    } catch (e) { errback(e as Error); }
   });
 }
 
@@ -311,6 +304,7 @@ export function setupListeners(): () => void {
   });
 
   const unsubTransportCreated = ws.on<VoiceTransportCreatedPayload>('voice:transport-created', ({ direction, transport }) => {
+    if (!transport) return;
     if (direction === 'send') {
       createSendTransport(transport).catch(console.error);
     } else {

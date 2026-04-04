@@ -537,7 +537,7 @@ export async function handleWsMessage(
       // Soundboard
       // -----------------------------------------------------------------------
       case 'soundboard:play': {
-        const { clipId, duration } = event.data;
+        const { clipId } = event.data;
 
         const vs = await getUserVoiceState(userId);
         if (!vs) {
@@ -566,9 +566,7 @@ export async function handleWsMessage(
             channelId: vs.channelId,
             userId,
             clipName,
-            // Forward the duration so clients can auto-clear their indicator
-            // exactly when the clip ends rather than using a fixed timeout.
-            duration: typeof duration === 'number' ? duration : undefined,
+            duration: undefined,
           },
         });
 

@@ -28,6 +28,7 @@ function toChannel(row: {
     type: row.type as ChannelType,
     topic: row.topic,
     position: row.position,
+    categoryId: null,
     createdAt: row.createdAt.toISOString(),
   };
 }

@@ -42,8 +42,8 @@ export async function addReaction(
       messageId_userId_emojiId_emojiUnicode: {
         messageId,
         userId,
-        emojiId: emojiId ?? null,
-        emojiUnicode: emojiUnicode ?? null,
+        emojiId: emojiId ?? '',
+        emojiUnicode: emojiUnicode ?? '',
       },
     },
     create: {

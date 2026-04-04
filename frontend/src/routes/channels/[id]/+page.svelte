@@ -13,7 +13,7 @@
   import VoiceChannelView from '$lib/components/voice/VoiceChannelView.svelte';
   import type { User } from '@harmony/shared/types/user';
 
-  const channelId = $derived($page.params.id);
+  const channelId = $derived($page.params.id as string);
 
   let members = $state<User[]>([]);
   let acknowledgedChannelId = $state<string | null>(null);

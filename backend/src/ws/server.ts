@@ -4,6 +4,7 @@ import { getAllChannels } from '../channels/service';
 import { setPresence, removePresence } from './presence';
 import { handleVoiceLeave } from '../voice/signaling';
 import { getUserVoiceState } from '../voice/rooms';
+import { UserStatus } from '@harmony/shared/types/user';
 import type { ServerWebSocket } from 'bun';
 
 // ---------------------------------------------------------------------------
@@ -156,7 +157,7 @@ export async function handleWsOpen(ws: ServerWebSocket<WsData>): Promise<void> {
 
   // Mark user as online
   try {
-    await setPresence(userId, 'ONLINE');
+    await setPresence(userId, UserStatus.ONLINE);
   } catch (err) {
     console.error('[ws] Failed to set presence:', err);
   }

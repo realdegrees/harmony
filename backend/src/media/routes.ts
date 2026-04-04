@@ -33,7 +33,7 @@ export async function handleMediaRoute(
       return error('File not found', 404);
     }
     const mimeType = mime.lookup(filePath) || 'application/octet-stream';
-    return new Response(data, {
+    return new Response(data as unknown as BodyInit, {
       status: 200,
       headers: { 'Content-Type': mimeType },
     });

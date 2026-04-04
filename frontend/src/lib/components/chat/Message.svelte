@@ -11,6 +11,7 @@
   import ReactionPicker from './ReactionPicker.svelte';
   import Tooltip from '$lib/components/ui/Tooltip.svelte';
   import type { Message } from '@harmony/shared/types/message';
+  import { detectEmbeds } from '$lib/utils/embed';
 
   interface Props {
     message: Message;

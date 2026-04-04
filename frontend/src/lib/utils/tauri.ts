@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 /**
  * Tauri environment detection and server URL management.
  *
