@@ -183,9 +183,11 @@
       {isExpanded ? 'border-brand/50 shadow-[0_0_0_3px_rgba(92,110,240,0.12)] w-72' : 'w-36 hover:border-white/[0.14]'}
     "
     onclick={expand}
-    role="searchbox"
+    role="combobox"
     aria-label="Search messages"
     aria-expanded={isExpanded}
+    aria-haspopup="listbox"
+    aria-controls="search-results"
     tabindex="0"
     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') expand(); }}
   >

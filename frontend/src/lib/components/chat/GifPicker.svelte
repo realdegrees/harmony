@@ -209,13 +209,18 @@
         <div class="flex gap-1.5 mt-1">
           <div class="flex flex-col gap-1.5 flex-1">
             {#each favorites.filter((_, i) => i % 2 === 0) as fav (fav.giphyId)}
-              <div class="relative group rounded overflow-hidden cursor-pointer">
-                <img
-                  src={URL.createObjectURL(fav.previewBlob)}
-                  alt="Favorite GIF"
-                  class="w-full object-cover rounded"
+              <div class="relative group rounded overflow-hidden">
+                <button
+                  class="w-full p-0 border-0 bg-transparent cursor-pointer"
                   onclick={() => onselect({ id: fav.giphyId, title: '', url: URL.createObjectURL(fav.blob), previewUrl: URL.createObjectURL(fav.previewBlob), width: 0, height: 0 })}
-                />
+                  aria-label="Send favorite GIF"
+                >
+                  <img
+                    src={URL.createObjectURL(fav.previewBlob)}
+                    alt="Favorite GIF"
+                    class="w-full object-cover rounded"
+                  />
+                </button>
                 <button
                   onclick={() => deleteFavoriteGif(fav.giphyId).then(loadFavorites)}
                   class="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-danger opacity-0 group-hover:opacity-100 transition-opacity"
@@ -230,13 +235,18 @@
           </div>
           <div class="flex flex-col gap-1.5 flex-1">
             {#each favorites.filter((_, i) => i % 2 === 1) as fav (fav.giphyId)}
-              <div class="relative group rounded overflow-hidden cursor-pointer">
-                <img
-                  src={URL.createObjectURL(fav.previewBlob)}
-                  alt="Favorite GIF"
-                  class="w-full object-cover rounded"
+              <div class="relative group rounded overflow-hidden">
+                <button
+                  class="w-full p-0 border-0 bg-transparent cursor-pointer"
                   onclick={() => onselect({ id: fav.giphyId, title: '', url: URL.createObjectURL(fav.blob), previewUrl: URL.createObjectURL(fav.previewBlob), width: 0, height: 0 })}
-                />
+                  aria-label="Send favorite GIF"
+                >
+                  <img
+                    src={URL.createObjectURL(fav.previewBlob)}
+                    alt="Favorite GIF"
+                    class="w-full object-cover rounded"
+                  />
+                </button>
               </div>
             {/each}
           </div>
@@ -258,14 +268,19 @@
         <div class="flex gap-1.5 mt-1">
           <div class="flex flex-col gap-1.5 flex-1">
             {#each col1 as gif (gif.id)}
-              <div class="relative group rounded overflow-hidden cursor-pointer">
-                <img
-                  src={gif.previewUrl}
-                  alt={gif.title}
-                  loading="lazy"
-                  class="w-full object-cover rounded hover:opacity-90 transition-opacity"
+              <div class="relative group rounded overflow-hidden">
+                <button
+                  class="w-full p-0 border-0 bg-transparent cursor-pointer"
                   onclick={() => onselect(gif)}
-                />
+                  aria-label="Send GIF: {gif.title}"
+                >
+                  <img
+                    src={gif.previewUrl}
+                    alt={gif.title}
+                    loading="lazy"
+                    class="w-full object-cover rounded hover:opacity-90 transition-opacity"
+                  />
+                </button>
                 <!-- Favorite button -->
                 <button
                   onclick={(e) => { e.stopPropagation(); toggleFavorite(gif); }}
@@ -285,14 +300,19 @@
           </div>
           <div class="flex flex-col gap-1.5 flex-1">
             {#each col2 as gif (gif.id)}
-              <div class="relative group rounded overflow-hidden cursor-pointer">
-                <img
-                  src={gif.previewUrl}
-                  alt={gif.title}
-                  loading="lazy"
-                  class="w-full object-cover rounded hover:opacity-90 transition-opacity"
+              <div class="relative group rounded overflow-hidden">
+                <button
+                  class="w-full p-0 border-0 bg-transparent cursor-pointer"
                   onclick={() => onselect(gif)}
-                />
+                  aria-label="Send GIF: {gif.title}"
+                >
+                  <img
+                    src={gif.previewUrl}
+                    alt={gif.title}
+                    loading="lazy"
+                    class="w-full object-cover rounded hover:opacity-90 transition-opacity"
+                  />
+                </button>
                 <button
                   onclick={(e) => { e.stopPropagation(); toggleFavorite(gif); }}
                   class="

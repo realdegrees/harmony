@@ -233,6 +233,7 @@
         </button>
         {#if gifPickerOpen}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
           <div class="fixed inset-0 z-40" onclick={() => (gifPickerOpen = false)}></div>
           <div class="absolute bottom-10 left-0 z-50">
             <GifPicker
@@ -296,6 +297,7 @@
         </Tooltip>
         {#if emojiPickerOpen}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
           <div class="fixed inset-0 z-40" onclick={() => (emojiPickerOpen = false)}></div>
           <div class="absolute bottom-10 right-0 z-50">
             <EmojiPicker

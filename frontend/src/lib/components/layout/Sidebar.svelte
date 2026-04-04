@@ -394,6 +394,7 @@
 <!-- Status selector popup at fixed position above the user panel -->
 {#if statusSelectorOpen}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div class="fixed inset-0 z-40" onclick={() => (statusSelectorOpen = false)}></div>
   <div class="fixed z-50" style={statusAnchorStyle}>
     <StatusSelector onclose={() => (statusSelectorOpen = false)} />

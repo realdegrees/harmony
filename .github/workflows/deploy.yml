@@ -4,17 +4,14 @@ on:
   push:
     branches:
       - main
-    # Does NOT trigger on develop - only production deployments from main
 
 concurrency:
-  # Only one deployment at a time; do not cancel in-progress deploys
   group: deploy-production
   cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_APP: ghcr.io/${{ github.repository_owner }}/harmony-app
-  IMAGE_MEDIA: ghcr.io/${{ github.repository_owner }}/harmony-media
+  IMAGE: ghcr.io/${{ github.repository_owner }}/harmony
 
 jobs:
   build-and-deploy:
@@ -25,11 +22,9 @@ jobs:
       packages: write
 
     steps:
-      # ── Checkout ───────────────────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ── Setup Bun ──────────────────────────────────────────────────────────
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -44,18 +39,16 @@ jobs:
             shared/node_modules
             backend/node_modules
             frontend/node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lockb', '**/package.json') }}
+          key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lock', '**/package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # ── Lint (gate before building Docker images) ──────────────────────────
       - name: Run linters
         run: bun run lint
 
-      # ── Docker Setup ───────────────────────────────────────────────────────
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -64,52 +57,30 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── Derive image tags ──────────────────────────────────────────────────
-      - name: Generate image metadata
+      - name: Generate image tag
         id: meta
         run: |
-          SHORT_SHA="${{ github.sha }}"
-          SHORT_SHA="${SHORT_SHA:0:7}"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "app_tag=${{ env.IMAGE_APP }}:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "media_tag=${{ env.IMAGE_MEDIA }}:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ env.IMAGE }}:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
-      # ── Build & Push App Image ─────────────────────────────────────────────
-      - name: Build and push harmony-app image
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/app/Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE_APP }}:latest
-            ${{ steps.meta.outputs.app_tag }}
+            ${{ env.IMAGE }}:latest
+            ${{ steps.meta.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
-            org.opencontainers.image.source=${{ github.repositoryUrl }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.created=${{ github.event.repository.updated_at }}
-
-      # ── Build & Push Media Image ───────────────────────────────────────────
-      - name: Build and push harmony-media image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/media/Dockerfile
-          push: true
-          tags: |
-            ${{ env.IMAGE_MEDIA }}:latest
-            ${{ steps.meta.outputs.media_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          labels: |
-            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
-      # ── Deploy to Production Server ────────────────────────────────────────
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -120,45 +91,36 @@ jobs:
             set -euo pipefail
 
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-            APP_TAG="${{ steps.meta.outputs.short_sha }}"
-            REGISTRY="${{ env.REGISTRY }}"
-            IMAGE_APP="${{ env.IMAGE_APP }}"
-            IMAGE_MEDIA="${{ env.IMAGE_MEDIA }}"
+            IMAGE="${{ env.IMAGE }}"
+            TAG="${{ steps.meta.outputs.short_sha }}"
 
-            echo "==> Deploying Harmony @ ${APP_TAG} to ${DEPLOY_PATH}"
+            echo "==> Deploying harmony:${TAG} to ${DEPLOY_PATH}"
             cd "${DEPLOY_PATH}"
 
-            # Log in to GHCR on the server
-            echo "${{ secrets.GHCR_TOKEN }}" | \
-              docker login "${REGISTRY}" \
-                -u "${{ github.actor }}" \
-                --password-stdin
+            # Pull the new image
+            echo "${{ secrets.GITHUB_TOKEN }}" | \
+              docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            docker pull "${IMAGE}:${TAG}"
 
-            # Pull the newly built images
-            echo "==> Pulling images..."
-            docker pull "${IMAGE_APP}:${APP_TAG}"
-            docker pull "${IMAGE_MEDIA}:${APP_TAG}"
+            # Update compose to use this exact tag
+            export HARMONY_IMAGE="${IMAGE}:${TAG}"
 
-            # Pin compose to use the exact tagged images
-            export APP_IMAGE="${IMAGE_APP}:${APP_TAG}"
-            export MEDIA_IMAGE="${IMAGE_MEDIA}:${APP_TAG}"
+            # Run migrations before swapping the container
+            echo "==> Running migrations..."
+            docker run --rm \
+              --env-file .env \
+              -v harmony_data:/data \
+              "${IMAGE}:${TAG}" \
+              sh -c "cd /app/backend && bunx prisma migrate deploy"
 
-            # Run database migrations before restarting the app
-            echo "==> Running database migrations..."
-            docker compose -f docker/docker-compose.yml run --rm \
-              -e DATABASE_URL \
-              harmony-app \
-              bun --filter @harmony/backend prisma migrate deploy
-
-            # Restart services with zero-downtime rolling update
-            echo "==> Restarting services..."
+            # Restart with the new image
+            echo "==> Restarting..."
             docker compose -f docker/docker-compose.yml up -d \
               --pull never \
               --no-build \
               --remove-orphans
 
-            # Remove dangling images to free disk space
-            echo "==> Pruning old images..."
+            # Clean up old images
             docker image prune -f --filter "until=24h"
 
-            echo "==> Deployment complete."
+            echo "==> Done."

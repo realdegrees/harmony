@@ -173,6 +173,7 @@
     <!-- Content -->
     {#if editing}
       <div class="mt-1">
+        <!-- svelte-ignore a11y_autofocus -->
         <textarea
           class="w-full bg-white/[0.06] backdrop-blur-sm text-text-primary rounded-xl px-3.5 py-2.5 text-sm resize-none border border-brand/50 focus:outline-none focus:border-brand focus:shadow-[0_0_0_3px_rgba(92,110,240,0.15)]"
           rows="3"
@@ -301,6 +302,7 @@
 <!-- Reaction picker rendered at fixed viewport position so it never clips -->
 {#if reactionPickerOpen}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div class="fixed inset-0 z-40" onclick={() => (reactionPickerOpen = false)}></div>
   <div class="fixed z-50" style={pickerStyle}>
     <ReactionPicker {message} />

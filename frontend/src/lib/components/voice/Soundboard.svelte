@@ -48,7 +48,7 @@
   async function loadServerClips() {
     isLoading = true;
     try {
-      const res = await api.get<SoundClip[]>('/soundboard');
+      const res = await api.get<SoundClip[]>('/sounds');
       serverClips = res;
     } catch (e) {
       console.error('Failed to load soundboard clips', e);

@@ -42,6 +42,7 @@
     </label>
   {/if}
 
+  <!-- svelte-ignore a11y_autofocus -->
   <input
     {id}
     {type}

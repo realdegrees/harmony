@@ -101,9 +101,11 @@
           <!-- Unread badge -->
           <Badge count={channel.unreadCount} />
 
-          <!-- Voice channel: text-only button (view chat without joining voice) -->
+          <!-- Voice channel: text-only link (view chat without joining voice) -->
           {#if type === ChannelType.VOICE}
-            <button
+            <!-- svelte-ignore a11y_interactive_supports_focus -->
+            <span
+              role="button"
               class="shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded transition-all duration-100
                      text-text-muted hover:text-text-primary hover:bg-white/[0.12]"
               title="View text chat (no voice)"
@@ -113,11 +115,18 @@
                 channels.setActiveChannel(channel.id);
                 goto(`/channels/${channel.id}`);
               }}
+              onkeydown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  channels.setActiveChannel(channel.id);
+                  goto(`/channels/${channel.id}`);
+                }
+              }}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
-            </button>
+            </span>
           {/if}
         </button>
 

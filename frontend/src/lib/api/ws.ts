@@ -13,6 +13,7 @@ class WebSocketClient {
   private maxReconnectAttempts = 10;
   private connected = false;
   private intentionalClose = false;
+  private queue: ClientEvent[] = [];
 
   connect(token: string): void {
     this.token = token;
@@ -47,6 +48,11 @@ class WebSocketClient {
     this.ws.onopen = () => {
       this.connected = true;
       this.reconnectAttempts = 0;
+      // Flush any messages that were sent before the connection was ready
+      for (const event of this.queue) {
+        this.ws!.send(JSON.stringify(event));
+      }
+      this.queue = [];
       this.emit('connected', {});
     };
 
@@ -96,6 +102,7 @@ class WebSocketClient {
 
   disconnect(): void {
     this.intentionalClose = true;
+    this.queue = [];
 
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -115,7 +122,7 @@ class WebSocketClient {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(event));
     } else {
-      console.warn('[ws] Cannot send — not connected:', event.type);
+      this.queue.push(event);
     }
   }
 

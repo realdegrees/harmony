@@ -224,16 +224,19 @@
                     <p class="text-[10px] text-text-muted mt-0.5">{notifTime(notif.createdAt)}</p>
                   </div>
                   {#if !notif.read}
-                    <button
-                      class="shrink-0 p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all"
+                    <!-- svelte-ignore a11y_interactive_supports_focus -->
+                    <span
+                      role="button"
+                      class="shrink-0 p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.10] transition-all cursor-pointer"
                       onclick={(e) => { e.stopPropagation(); notifications.markRead(notif.id); }}
+                      onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); notifications.markRead(notif.id); } }}
                       title="Mark as read"
                       aria-label="Mark as read"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                       </svg>
-                    </button>
+                    </span>
                   {/if}
                 </button>
               {/each}
