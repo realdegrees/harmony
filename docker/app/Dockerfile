@@ -10,6 +10,8 @@ COPY package.json bunfig.toml ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
+COPY media/package.json ./media/
+COPY desktop/package.json ./desktop/
 
 # Install all workspace dependencies
 RUN bun install --frozen-lockfile
@@ -49,6 +51,8 @@ COPY package.json bunfig.toml ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
+COPY media/package.json ./media/
+COPY desktop/package.json ./desktop/
 
 # Copy installed node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules

@@ -19,6 +19,8 @@ COPY package.json bunfig.toml ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
+COPY media/package.json ./media/
+COPY desktop/package.json ./desktop/
 
 # Install all workspace dependencies
 RUN bun install
