@@ -15,7 +15,7 @@
 </script>
 
 {#if children}
-  <div class="relative inline-flex {className}">
+  <div class="relative inline-flex items-center justify-center {className}">
     {@render children()}
     {#if show}
       <span

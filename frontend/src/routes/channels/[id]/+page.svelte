@@ -66,8 +66,8 @@
           available space and the chat pinned to the bottom.
         -->
         <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <!-- Voice participant area -->
-          <div class="flex flex-col overflow-hidden min-h-[200px] max-h-[55%]" style="flex: 1 1 0;">
+          <!-- Voice participant area — shrinks to fit content, capped so chat always gets space -->
+          <div class="flex flex-col overflow-hidden shrink-0 max-h-[50%]">
             <VoiceChannelView
               {channelId}
               channelName={activeChannel?.name ?? 'Voice Channel'}
@@ -76,8 +76,8 @@
 
           <div class="shrink-0 border-t border-divider"></div>
 
-          <!-- Chat section -->
-          <div class="flex flex-col overflow-hidden min-h-[220px]" style="height: 45%;">
+          <!-- Chat section — takes all remaining space -->
+          <div class="flex flex-col flex-1 overflow-hidden min-h-[220px]">
             <MessageList {channelId} />
             <MessageInput
               {channelId}

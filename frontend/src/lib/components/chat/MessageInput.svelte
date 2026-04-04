@@ -184,7 +184,7 @@
   <!-- Input box -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="flex items-end gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/[0.08] px-3 py-2 transition-all duration-150
+    class="flex items-center gap-2 bg-white/[0.05] backdrop-blur-sm border border-white/[0.08] px-3 py-2 transition-all duration-150
       {dragOver ? 'ring-2 ring-brand/60 border-brand/40' : ''}
       {replyingTo ? 'rounded-b-xl rounded-t-none' : 'rounded-xl'}"
     ondragover={(e) => { e.preventDefault(); dragOver = true; }}
