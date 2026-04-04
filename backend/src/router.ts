@@ -1,7 +1,7 @@
 import { handleAuthRoute } from './auth/routes';
 import { handleUserRoute } from './users/routes';
 import { handleRoleRoute } from './roles/routes';
-import { handleChannelRoute } from './channels/routes';
+import { handleChannelRoute, handleCategoryRoute } from './channels/routes';
 import { handleMessageRoute } from './messages/routes';
 import { handleDMRoute } from './dms/routes';
 import { handleMediaRoute } from './media/routes';
@@ -96,6 +96,19 @@ export async function handleRequest(req: Request): Promise<Response> {
       if (result) return addCors(result);
     } catch (err) {
       console.error('[router] Role route error:', err);
+      return addCors(error('Internal server error', 500));
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Category routes — /api/categories/*
+  // -------------------------------------------------------------------------
+  if (path.startsWith('/api/categories')) {
+    try {
+      const result = await handleCategoryRoute(req, path, userId);
+      if (result) return addCors(result);
+    } catch (err) {
+      console.error('[router] Category route error:', err);
       return addCors(error('Internal server error', 500));
     }
   }

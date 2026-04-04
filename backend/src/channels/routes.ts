@@ -3,6 +3,9 @@ import {
   createChannelSchema,
   updateChannelSchema,
   channelPermissionOverrideSchema,
+  createCategorySchema,
+  updateCategorySchema,
+  moveChannelToCategorySchema,
 } from '@harmony/shared/validation/channel';
 import {
   createChannel,
@@ -11,6 +14,12 @@ import {
   getChannel,
   getAllChannels,
   getChannelsForUser,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getAllCategories,
+  getCategoriesWithChannels,
+  moveChannelToCategory,
 } from './service';
 import {
   canManageChannel,
@@ -23,6 +32,116 @@ import { db } from '../db/client';
 // ---------------------------------------------------------------------------
 // Route matcher
 // ---------------------------------------------------------------------------
+
+/**
+ * Handles all /api/categories/* routes.
+ * Returns a Response if the route matched, or null if it did not.
+ */
+export async function handleCategoryRoute(
+  req: Request,
+  path: string,
+  userId: string,
+): Promise<Response | null> {
+  const method = req.method.toUpperCase();
+
+  // -------------------------------------------------------------------------
+  // GET /api/categories
+  // -------------------------------------------------------------------------
+  if (path === '/api/categories' && method === 'GET') {
+    try {
+      const cats = await getCategoriesWithChannels(userId);
+      return json(cats);
+    } catch (e) {
+      console.error(e);
+      return error('Failed to fetch categories', 500);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // POST /api/categories
+  // -------------------------------------------------------------------------
+  if (path === '/api/categories' && method === 'POST') {
+    if (!(await canManageChannel(userId))) {
+      return error('Missing MANAGE_CHANNELS permission', 403);
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return error('Invalid JSON body');
+    }
+
+    const parsed = createCategorySchema.safeParse(body);
+    if (!parsed.success) {
+      return error(parsed.error.errors[0]?.message ?? 'Validation error');
+    }
+
+    try {
+      const category = await createCategory(parsed.data.name);
+      return json(category, 201);
+    } catch (e) {
+      console.error(e);
+      return error('Failed to create category', 500);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Routes with /:id
+  // -------------------------------------------------------------------------
+  const idMatch = path.match(/^\/api\/categories\/([^/]+)$/);
+  if (!idMatch) return null;
+
+  const categoryId = idMatch[1];
+
+  // -------------------------------------------------------------------------
+  // PATCH /api/categories/:id
+  // -------------------------------------------------------------------------
+  if (method === 'PATCH') {
+    if (!(await canManageChannel(userId))) {
+      return error('Missing MANAGE_CHANNELS permission', 403);
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return error('Invalid JSON body');
+    }
+
+    const parsed = updateCategorySchema.safeParse(body);
+    if (!parsed.success) {
+      return error(parsed.error.errors[0]?.message ?? 'Validation error');
+    }
+
+    try {
+      const category = await updateCategory(categoryId, parsed.data);
+      return json(category);
+    } catch (e) {
+      console.error(e);
+      return error('Failed to update category', 500);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // DELETE /api/categories/:id
+  // -------------------------------------------------------------------------
+  if (method === 'DELETE') {
+    if (!(await canManageChannel(userId))) {
+      return error('Missing MANAGE_CHANNELS permission', 403);
+    }
+
+    try {
+      await deleteCategory(categoryId);
+      return json({ success: true });
+    } catch (e) {
+      console.error(e);
+      return error('Failed to delete category', 500);
+    }
+  }
+
+  return null;
+}
 
 /**
  * Handles all /api/channels/* routes.
@@ -231,6 +350,35 @@ export async function handleChannelRoute(
     } catch (e) {
       console.error(e);
       return error('Failed to remove channel permission override', 500);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // PATCH /api/channels/:id/category
+  // -------------------------------------------------------------------------
+  if (sub === '/category' && method === 'PATCH') {
+    if (!(await canManageChannel(userId))) {
+      return error('Missing MANAGE_CHANNELS permission', 403);
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return error('Invalid JSON body');
+    }
+
+    const parsed = moveChannelToCategorySchema.safeParse(body);
+    if (!parsed.success) {
+      return error(parsed.error.errors[0]?.message ?? 'Validation error');
+    }
+
+    try {
+      await moveChannelToCategory(channelId, parsed.data.categoryId);
+      return json({ success: true });
+    } catch (e) {
+      console.error(e);
+      return error('Failed to move channel to category', 500);
     }
   }
 

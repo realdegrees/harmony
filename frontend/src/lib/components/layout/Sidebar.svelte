@@ -8,25 +8,85 @@
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import ChannelList from './ChannelList.svelte';
   import { ChannelType } from '@harmony/shared/types/channel';
+  import type { ChannelCategoryWithChannels } from '@harmony/shared/types/channel';
   import type { CreateChannelRequest } from '@harmony/shared/types/api';
 
   const APP_NAME = 'Harmony';
 
-  let creatingChannel = $state(false);
-  let newChannelName = $state('');
-  let newChannelType = $state<ChannelType>(ChannelType.TEXT);
-
-  async function createChannel(type: ChannelType) {
-    const name = prompt(`New ${type === ChannelType.TEXT ? 'text' : 'voice'} channel name:`);
+  // ---------------------------------------------------------------------------
+  // Create channel in a category
+  // ---------------------------------------------------------------------------
+  async function createChannelInCategory(categoryId: string | null, type: ChannelType) {
+    const label = type === ChannelType.TEXT ? 'text' : 'voice';
+    const name = prompt(`New ${label} channel name:`);
     if (!name?.trim()) return;
     try {
       await channels.createChannel({
         name: name.trim(),
         type,
+        categoryId: categoryId ?? undefined,
       } as CreateChannelRequest);
+      // Refresh categories so the new channel appears in the right bucket
+      await channels.fetchCategories();
     } catch (err) {
       console.error('Failed to create channel:', err);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Create category
+  // ---------------------------------------------------------------------------
+  async function createCategory() {
+    const name = prompt('New category name:');
+    if (!name?.trim()) return;
+    try {
+      await channels.createCategory({ name: name.trim() });
+    } catch (err) {
+      console.error('Failed to create category:', err);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Category context menu
+  // ---------------------------------------------------------------------------
+  function handleCategoryContextMenu(e: MouseEvent, cat: ChannelCategoryWithChannels) {
+    e.preventDefault();
+    ui.showContextMenu(e.clientX, e.clientY, [
+      {
+        label: 'Create Text Channel',
+        action: () => createChannelInCategory(cat.id, ChannelType.TEXT),
+      },
+      {
+        label: 'Create Voice Channel',
+        action: () => createChannelInCategory(cat.id, ChannelType.VOICE),
+      },
+      { label: '', action: () => {}, divider: true },
+      {
+        label: 'Edit Category',
+        action: async () => {
+          const name = prompt('Rename category:', cat.name);
+          if (!name?.trim() || name.trim() === cat.name) return;
+          try {
+            await channels.updateCategory(cat.id, { name: name.trim() });
+          } catch (err) {
+            console.error('Failed to rename category:', err);
+          }
+        },
+      },
+      {
+        label: 'Delete Category',
+        danger: true,
+        action: async () => {
+          if (confirm(`Delete category "${cat.name}"? Channels will become uncategorized.`)) {
+            try {
+              await channels.deleteCategory(cat.id);
+            } catch (err) {
+              console.error('Failed to delete category:', err);
+            }
+          }
+        },
+      },
+    ]);
   }
 
   function handleLogout() {
@@ -55,72 +115,104 @@
 
   <!-- Channel list area (scrollable) -->
   <div class="flex-1 overflow-y-auto py-2">
-    <!-- Text Channels -->
-    <div class="mb-1">
-      <div class="flex items-center justify-between px-4 py-1 group">
-        <button
-          class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-text-muted hover:text-text-secondary transition-colors"
-          onclick={() => {}}
-          aria-expanded="true"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="transition-transform">
-            <path d="M7 10l5 5 5-5z"/>
-          </svg>
-          Text Channels
-        </button>
-        <button
-          class="text-text-muted hover:text-text-primary transition-colors opacity-0 group-hover:opacity-100"
-          onclick={() => createChannel(ChannelType.TEXT)}
-          aria-label="Create text channel"
-          title="Create text channel"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </button>
-      </div>
 
-      <ChannelList
-        items={channels.textChannels}
-        type={ChannelType.TEXT}
-        activeChannelId={channels.activeChannelId}
-      />
+    <!-- Create Category button -->
+    <div class="flex items-center justify-between px-4 pb-1">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Channels</span>
+      <button
+        class="text-text-muted hover:text-text-primary transition-colors"
+        onclick={createCategory}
+        aria-label="Create category"
+        title="Create category"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
     </div>
 
-    <!-- Voice Channels -->
-    <div class="mb-1">
-      <div class="flex items-center justify-between px-4 py-1 group">
-        <button
-          class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-text-muted hover:text-text-secondary transition-colors"
-          onclick={() => {}}
-          aria-expanded="true"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M7 10l5 5 5-5z"/>
-          </svg>
-          Voice Channels
-        </button>
-        <button
-          class="text-text-muted hover:text-text-primary transition-colors opacity-0 group-hover:opacity-100"
-          onclick={() => createChannel(ChannelType.VOICE)}
-          aria-label="Create voice channel"
-          title="Create voice channel"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </button>
+    <!-- Uncategorized channels -->
+    {#if channels.uncategorizedChannels.filter(c => c.type === ChannelType.TEXT).length > 0}
+      <div class="mb-1">
+        <ChannelList
+          items={channels.uncategorizedChannels.filter(c => c.type === ChannelType.TEXT)}
+          type={ChannelType.TEXT}
+          activeChannelId={channels.activeChannelId}
+        />
       </div>
+    {/if}
+    {#if channels.uncategorizedChannels.filter(c => c.type === ChannelType.VOICE).length > 0}
+      <div class="mb-1">
+        <ChannelList
+          items={channels.uncategorizedChannels.filter(c => c.type === ChannelType.VOICE)}
+          type={ChannelType.VOICE}
+          activeChannelId={channels.activeChannelId}
+          voiceParticipants={voice.participants}
+        />
+      </div>
+    {/if}
 
-      <ChannelList
-        items={channels.voiceChannels}
-        type={ChannelType.VOICE}
-        activeChannelId={channels.activeChannelId}
-        voiceParticipants={voice.participants}
-      />
-    </div>
+    <!-- Categories -->
+    {#each channels.channelsByCategory as cat (cat.id)}
+      {@const textChannels = cat.channels.filter(c => c.type === ChannelType.TEXT)}
+      {@const voiceChannels = cat.channels.filter(c => c.type === ChannelType.VOICE)}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="mb-1" oncontextmenu={(e) => handleCategoryContextMenu(e, cat)}>
+        <!-- Category header -->
+        <div class="flex items-center justify-between px-2 py-1 group">
+          <button
+            class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-text-muted hover:text-text-secondary transition-colors flex-1 min-w-0"
+            onclick={() => channels.toggleCategoryCollapsed(cat.id)}
+            aria-expanded={!cat.collapsed}
+            aria-label="Toggle {cat.name}"
+          >
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+              class="shrink-0 transition-transform duration-150 {cat.collapsed ? '-rotate-90' : ''}"
+            >
+              <path d="M7 10l5 5 5-5z"/>
+            </svg>
+            <span class="truncate">{cat.name}</span>
+          </button>
+          <!-- Add channel to category button -->
+          <button
+            class="text-text-muted hover:text-text-primary transition-colors opacity-0 group-hover:opacity-100 shrink-0 ml-1"
+            onclick={(e) => { e.stopPropagation(); handleCategoryContextMenu(e, cat); }}
+            aria-label="Category options for {cat.name}"
+            title="Add channel or manage category"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Category channels (hidden when collapsed) -->
+        {#if !cat.collapsed}
+          {#if textChannels.length > 0}
+            <ChannelList
+              items={textChannels}
+              type={ChannelType.TEXT}
+              activeChannelId={channels.activeChannelId}
+            />
+          {/if}
+          {#if voiceChannels.length > 0}
+            <ChannelList
+              items={voiceChannels}
+              type={ChannelType.VOICE}
+              activeChannelId={channels.activeChannelId}
+              voiceParticipants={voice.participants}
+            />
+          {/if}
+        {/if}
+      </div>
+    {/each}
 
     <!-- Direct Messages -->
     {#if channels.dmChannels.length > 0}

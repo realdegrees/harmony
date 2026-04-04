@@ -28,6 +28,7 @@
   $effect(() => {
     if (auth.isAuthenticated) {
       channels.fetchChannels().catch(console.error);
+      channels.fetchCategories().catch(console.error);
       channels.fetchDmChannels().catch(console.error);
       notifications.fetchNotifications().catch(console.error);
       notifications.fetchUnreadStates().catch(console.error);

@@ -54,6 +54,34 @@ async function seed() {
   }
 
   // -----------------------------------------------------------------------
+  // Channel Categories
+  // -----------------------------------------------------------------------
+
+  let textCategory = await db.channelCategory.findFirst({
+    where: { name: 'Text Channels' },
+  });
+  if (!textCategory) {
+    textCategory = await db.channelCategory.create({
+      data: { name: 'Text Channels', position: 0 },
+    });
+    console.log('[seed] Created category "Text Channels".');
+  } else {
+    console.log('[seed] Category "Text Channels" already exists, skipping.');
+  }
+
+  let voiceCategory = await db.channelCategory.findFirst({
+    where: { name: 'Voice Channels' },
+  });
+  if (!voiceCategory) {
+    voiceCategory = await db.channelCategory.create({
+      data: { name: 'Voice Channels', position: 1 },
+    });
+    console.log('[seed] Created category "Voice Channels".');
+  } else {
+    console.log('[seed] Category "Voice Channels" already exists, skipping.');
+  }
+
+  // -----------------------------------------------------------------------
   // Channels
   // -----------------------------------------------------------------------
 
@@ -62,11 +90,20 @@ async function seed() {
   });
   if (!generalText) {
     await db.channel.create({
-      data: { name: 'general', type: 'TEXT', position: 0 },
+      data: { name: 'general', type: 'TEXT', position: 0, categoryId: textCategory.id },
     });
     console.log('[seed] Created text channel "general".');
   } else {
-    console.log('[seed] Text channel "general" already exists, skipping.');
+    // Assign category if not already set
+    if (!generalText.categoryId) {
+      await db.channel.update({
+        where: { id: generalText.id },
+        data: { categoryId: textCategory.id },
+      });
+      console.log('[seed] Assigned "general" to "Text Channels" category.');
+    } else {
+      console.log('[seed] Text channel "general" already exists, skipping.');
+    }
   }
 
   const generalVoice = await db.channel.findFirst({
@@ -74,11 +111,20 @@ async function seed() {
   });
   if (!generalVoice) {
     await db.channel.create({
-      data: { name: 'General', type: 'VOICE', position: 0 },
+      data: { name: 'General', type: 'VOICE', position: 0, categoryId: voiceCategory.id },
     });
     console.log('[seed] Created voice channel "General".');
   } else {
-    console.log('[seed] Voice channel "General" already exists, skipping.');
+    // Assign category if not already set
+    if (!generalVoice.categoryId) {
+      await db.channel.update({
+        where: { id: generalVoice.id },
+        data: { categoryId: voiceCategory.id },
+      });
+      console.log('[seed] Assigned "General" to "Voice Channels" category.');
+    } else {
+      console.log('[seed] Voice channel "General" already exists, skipping.');
+    }
   }
 
   // -----------------------------------------------------------------------

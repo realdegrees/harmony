@@ -10,6 +10,7 @@ build/
 
 # Generated files
 generated/
+backend/src/generated/
 
 # Databases
 *.db
@@ -17,6 +18,7 @@ generated/
 *.db-wal
 
 # Environment variables
+# Copy .env.example → .env and fill in your values; never commit real secrets.
 .env
 .env.local
 .env.*.local
@@ -27,13 +29,15 @@ uploads/
 
 # Rust / Tauri
 target/
+desktop/src-tauri/target/
 
 # OS
 .DS_Store
 Thumbs.db
 
 # Editors
-.vscode/
+# Track launch.json and extensions.json; ignore personal settings.
+.vscode/settings.json
 .idea/
 *.swp
 *.swo

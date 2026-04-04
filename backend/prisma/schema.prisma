@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserStatus {
@@ -89,20 +88,35 @@ model UserRole {
   @@map("user_roles")
 }
 
-model Channel {
-  id        String      @id @default(uuid())
+model ChannelCategory {
+  id        String   @id @default(uuid())
   name      String
-  type      ChannelType
-  topic     String?
-  position  Int         @default(0)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  position  Int      @default(0)
+  collapsed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channels Channel[]
+
+  @@map("channel_categories")
+}
+
+model Channel {
+  id         String      @id @default(uuid())
+  name       String
+  type       ChannelType
+  topic      String?
+  position   Int         @default(0)
+  categoryId String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   messages    Message[]
   overrides   ChannelPermissionOverride[]
   readStates  ChannelReadState[]
   dm          DirectMessage?
   notifications Notification[]
+  category   ChannelCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@map("channels")
 }

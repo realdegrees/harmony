@@ -1,8 +1,18 @@
 import { api } from '$lib/api/client';
 import { ws } from '$lib/api/ws';
-import type { ChannelWithUnread, DirectMessageChannel } from '@harmony/shared/types/channel';
+import type {
+  ChannelWithUnread,
+  DirectMessageChannel,
+  ChannelCategoryWithChannels,
+} from '@harmony/shared/types/channel';
 import { ChannelType } from '@harmony/shared/types/channel';
-import type { CreateChannelRequest, UpdateChannelRequest } from '@harmony/shared/types/api';
+import type {
+  CreateChannelRequest,
+  UpdateChannelRequest,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  MoveChannelToCategoryRequest,
+} from '@harmony/shared/types/api';
 import type {
   ChannelCreatedPayload,
   ChannelUpdatedPayload,
@@ -11,6 +21,7 @@ import type {
 
 class ChannelsStore {
   channels = $state<ChannelWithUnread[]>([]);
+  categories = $state<ChannelCategoryWithChannels[]>([]);
   activeChannelId = $state<string | null>(null);
   dmChannels = $state<DirectMessageChannel[]>([]);
 
@@ -28,6 +39,26 @@ class ChannelsStore {
     return this.channels
       .filter((c) => c.type === ChannelType.VOICE)
       .sort((a, b) => a.position - b.position);
+  }
+
+  /** Channels that are not assigned to any category. */
+  get uncategorizedChannels(): ChannelWithUnread[] {
+    return this.channels
+      .filter((c) => c.type !== ChannelType.DM && c.categoryId === null)
+      .sort((a, b) => a.position - b.position);
+  }
+
+  /** Categories sorted by position, each with their channels populated from local state. */
+  get channelsByCategory(): ChannelCategoryWithChannels[] {
+    return this.categories
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((cat) => ({
+        ...cat,
+        channels: this.channels
+          .filter((c) => c.categoryId === cat.id)
+          .sort((a, b) => a.position - b.position),
+      }));
   }
 
   constructor() {
@@ -61,6 +92,19 @@ class ChannelsStore {
     this.channels = data;
   }
 
+  async fetchCategories(): Promise<void> {
+    const data = await api.get<ChannelCategoryWithChannels[]>('/categories');
+    this.categories = data;
+    // Sync channels from categories into the flat channels list
+    const catChannels = data.flatMap((cat) => cat.channels);
+    for (const ch of catChannels) {
+      const idx = this.channels.findIndex((c) => c.id === ch.id);
+      if (idx >= 0) {
+        this.channels[idx] = { ...this.channels[idx], ...ch };
+      }
+    }
+  }
+
   async fetchDmChannels(): Promise<void> {
     const data = await api.get<DirectMessageChannel[]>('/channels/dm');
     this.dmChannels = data;
@@ -91,6 +135,41 @@ class ChannelsStore {
     if (this.activeChannelId === id) {
       this.activeChannelId = null;
     }
+  }
+
+  async createCategory(data: CreateCategoryRequest): Promise<ChannelCategoryWithChannels> {
+    const category = await api.post<ChannelCategoryWithChannels>('/categories', data);
+    this.categories = [...this.categories, { ...category, channels: [] }];
+    return category;
+  }
+
+  async updateCategory(id: string, data: UpdateCategoryRequest): Promise<void> {
+    const updated = await api.patch<ChannelCategoryWithChannels>(`/categories/${id}`, data);
+    this.categories = this.categories.map((c) =>
+      c.id === id ? { ...c, ...updated } : c
+    );
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    await api.delete<void>(`/categories/${id}`);
+    // Move channels from the deleted category to uncategorized
+    this.channels = this.channels.map((c) =>
+      c.categoryId === id ? { ...c, categoryId: null } : c
+    );
+    this.categories = this.categories.filter((c) => c.id !== id);
+  }
+
+  async moveChannelToCategory(channelId: string, categoryId: string | null): Promise<void> {
+    await api.patch<void>(`/channels/${channelId}/category`, { categoryId } as MoveChannelToCategoryRequest);
+    this.channels = this.channels.map((c) =>
+      c.id === channelId ? { ...c, categoryId } : c
+    );
+  }
+
+  toggleCategoryCollapsed(categoryId: string): void {
+    this.categories = this.categories.map((c) =>
+      c.id === categoryId ? { ...c, collapsed: !c.collapsed } : c
+    );
   }
 
   decrementUnread(channelId: string): void {

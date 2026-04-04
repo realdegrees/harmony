@@ -56,12 +56,26 @@ export interface CreateChannelRequest {
   name: string;
   type: ChannelType;
   topic?: string;
+  categoryId?: string;
 }
 
 export interface UpdateChannelRequest {
   name?: string;
   topic?: string | null;
   position?: number;
+}
+
+export interface CreateCategoryRequest {
+  name: string;
+}
+
+export interface UpdateCategoryRequest {
+  name?: string;
+  position?: number;
+}
+
+export interface MoveChannelToCategoryRequest {
+  categoryId: string | null;
 }
 
 // ---------------------------------------------------------------------------

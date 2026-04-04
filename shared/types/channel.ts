@@ -10,6 +10,7 @@ export interface Channel {
   type: ChannelType;
   topic: string | null;
   position: number;
+  categoryId: string | null;
   createdAt: string;
 }
 
@@ -24,4 +25,16 @@ export interface DirectMessageChannel {
   user1Id: string;
   user2Id: string;
   channel: Channel;
+}
+
+export interface ChannelCategory {
+  id: string;
+  name: string;
+  position: number;
+  collapsed: boolean;
+  createdAt: string;
+}
+
+export interface ChannelCategoryWithChannels extends ChannelCategory {
+  channels: ChannelWithUnread[];
 }
