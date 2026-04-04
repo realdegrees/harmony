@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun --hot run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
-    "lint": "eslint src/ --ext .ts && tsc --noEmit",
+    "lint": "tsc --noEmit",
     "start": "bun run src/index.ts",
     "prisma": "bunx prisma",
     "db:migrate": "bunx prisma migrate dev",

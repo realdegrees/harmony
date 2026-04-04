@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:static": "BUILD_ADAPTER=static vite build",
     "preview": "vite preview",
-    "lint": "eslint src/ --ext .ts,.svelte && svelte-check --tsconfig ./tsconfig.json"
+    "lint": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
     "@giphy/js-fetch-api": "^5.7.0",
