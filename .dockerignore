@@ -16,3 +16,4 @@ uploads/
 .env.*
 !.env.example
 desktop/
+!desktop/package.json
