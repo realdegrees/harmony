@@ -1,7 +1,7 @@
 name: harmony
 
 services:
-  # ── App Server (Bun - backend API + serves built frontend) ──────────────────
+  # ── App Server (Bun - backend API + WebSocket) ────────────────────────────────
   harmony-app:
     build:
       context: ..
@@ -9,6 +9,7 @@ services:
     env_file: ../.env
     environment:
       NODE_ENV: production
+    # Not exposed to host directly — nginx proxies to this via the internal network
     volumes:
       - uploads:/data/uploads
     depends_on:
@@ -34,11 +35,12 @@ services:
     env_file: ../.env
     environment:
       NODE_ENV: production
-    # RTC ports must be exposed directly on the host for WebRTC to function.
-    # These bypass nginx and connect clients directly to mediasoup workers.
     ports:
+      # RTC ports must be exposed directly on the host for WebRTC.
+      # Clients connect to these directly — they do NOT go through nginx.
       - "${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}:${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}/udp"
       - "${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}:${MEDIASOUP_RTC_MIN_PORT:-40000}-${MEDIASOUP_RTC_MAX_PORT:-40100}/tcp"
+      # Internal management API — not exposed to host, app talks to it via Docker network
     restart: unless-stopped
     networks:
       - harmony-net
@@ -77,7 +79,7 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── nginx Reverse Proxy ───────────────────────────────────────────────────────
+  # ── nginx Reverse Proxy + Static File Server ──────────────────────────────────
   nginx:
     image: nginx:alpine
     ports:
@@ -85,9 +87,11 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Uncomment to serve frontend static files directly from nginx:
+      # Frontend static build is copied into the image at build time via the app
+      # Dockerfile, but you can also mount it here for zero-downtime deploys:
       # - ../frontend/build:/usr/share/nginx/html:ro
-      # Uncomment for SSL certificates (e.g. from certbot):
+      #
+      # SSL certificates (e.g. managed by certbot on the host):
       # - /etc/letsencrypt:/etc/nginx/ssl:ro
     depends_on:
       harmony-app:
