@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Attachment } from '@harmony/shared/types/message';
+  import { resolveUploadUrl } from '$lib/utils/tauri';
 
   interface Props {
     attachment: Attachment;
@@ -10,6 +11,8 @@
   const isImage = $derived(attachment.mimeType.startsWith('image/'));
   const isVideo = $derived(attachment.mimeType.startsWith('video/'));
   const isGif = $derived(attachment.mimeType === 'image/gif');
+
+  const url = $derived(resolveUploadUrl(attachment.url) ?? attachment.url);
 
   let lightboxOpen = $state(false);
 
@@ -26,7 +29,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <img
-      src={attachment.url}
+      src={url}
       alt={attachment.filename}
       class="max-w-[400px] max-h-[300px] rounded cursor-pointer object-contain bg-bg-tertiary"
       loading="lazy"
@@ -43,7 +46,7 @@
       onclick={() => (lightboxOpen = false)}
     >
       <img
-        src={attachment.url}
+        src={url}
         alt={attachment.filename}
         class="max-w-full max-h-full object-contain rounded shadow-2xl"
       />
@@ -65,7 +68,7 @@
   <div class="mt-1">
     <!-- svelte-ignore a11y_media_has_caption -->
     <video
-      src={attachment.url}
+      src={url}
       controls
       class="max-w-[400px] max-h-[300px] rounded bg-black"
       preload="metadata"
@@ -88,7 +91,7 @@
       <p class="text-xs text-text-muted">{formatSize(attachment.size)}</p>
     </div>
     <a
-      href={attachment.url}
+      href={url}
       download={attachment.filename}
       class="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
       aria-label="Download {attachment.filename}"

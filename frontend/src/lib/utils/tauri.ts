@@ -72,6 +72,29 @@ export function resolveApiUrl(path: string): string | null {
  * 3. Same-origin fallback: derives the URL from window.location (production,
  *    where frontend and backend share the same host).
  */
+/**
+ * Resolves a stored file path (e.g. "avatars/user.jpg") or an already-formed
+ * "/api/uploads/..." path to a fully-qualified URL.
+ *
+ * - In the browser the frontend is on the same origin as the backend, so
+ *   "/api/uploads/<path>" works as-is.
+ * - In Tauri the frontend is loaded from file://, so we prepend the
+ *   user-configured server URL.
+ * - External URLs (http/https) are returned unchanged.
+ */
+export function resolveUploadUrl(filePath: string | null | undefined): string | null {
+  if (!filePath) return null;
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) return filePath;
+  const apiPath = filePath.startsWith('/api/uploads/')
+    ? filePath
+    : `/api/uploads/${filePath}`;
+  if (isTauri()) {
+    const base = getServerUrl();
+    return base ? `${base}${apiPath}` : null;
+  }
+  return apiPath;
+}
+
 export function resolveWsUrl(path: string = '/ws'): string | null {
   if (isTauri()) {
     const base = getServerUrl();

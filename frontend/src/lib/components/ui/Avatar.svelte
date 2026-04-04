@@ -1,5 +1,6 @@
 <script lang="ts">
   import { UserStatus } from '@harmony/shared/types/user';
+  import { resolveUploadUrl } from '$lib/utils/tauri';
 
   interface Props {
     src?: string | null;
@@ -56,6 +57,7 @@
 
   const initial = $derived(username.charAt(0).toUpperCase());
   const bgColor = $derived(colorFromName(username));
+  const resolvedSrc = $derived(resolveUploadUrl(src));
 </script>
 
 <div class="relative inline-flex shrink-0 {className}">
@@ -65,11 +67,11 @@
       flex items-center justify-center
       font-semibold text-white select-none
     "
-    style={!src ? `background-color: ${bgColor}` : undefined}
+    style={!resolvedSrc ? `background-color: ${bgColor}` : undefined}
   >
-    {#if src}
+    {#if resolvedSrc}
       <img
-        src={src}
+        src={resolvedSrc}
         alt={username}
         class="w-full h-full object-cover"
         draggable="false"

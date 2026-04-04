@@ -117,7 +117,7 @@ export function toMessage(raw: RawMessage, currentUserId?: string): Message {
     path: a.path,
     mimeType: a.mimeType,
     size: a.size,
-    url: `/uploads/${a.path}`,
+    url: `/api/uploads/${a.path}`,
   }));
 
   const reactions = aggregateReactions(raw.reactions, currentUserId);
