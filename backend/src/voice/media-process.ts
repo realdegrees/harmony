@@ -103,7 +103,7 @@ function waitForMedia(
 
   setTimeout(async () => {
     try {
-      const res = await fetch(`${env.MEDIA_SERVER_URL}/api/health`);
+      const res = await fetch(`http://localhost:${env.MEDIA_PORT}/api/health`);
       if (res.ok) {
         console.log('[media] Media server is healthy');
         resolve();

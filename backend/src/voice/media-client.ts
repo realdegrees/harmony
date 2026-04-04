@@ -1,6 +1,6 @@
 import { env } from '../config/env';
 
-const MEDIA_URL = env.MEDIA_SERVER_URL;
+const MEDIA_URL = `http://localhost:${env.MEDIA_PORT}`;
 
 async function mediaRequest(method: string, path: string, body?: unknown): Promise<unknown> {
   const res = await fetch(`${MEDIA_URL}/api${path}`, {

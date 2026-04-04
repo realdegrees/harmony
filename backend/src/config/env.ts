@@ -34,7 +34,6 @@ const envSchema = z.object({
   MEDIASOUP_ANNOUNCED_IP: z.string().default('127.0.0.1'),
   MEDIASOUP_RTC_MIN_PORT: z.coerce.number().default(40000),
   MEDIASOUP_RTC_MAX_PORT: z.coerce.number().default(40100),
-  MEDIA_SERVER_URL: z.string().default('http://localhost:3001'),
   MEDIA_PORT: z.coerce.number().default(3001),
 
   // Push Notifications
