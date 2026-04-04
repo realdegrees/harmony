@@ -1,46 +1,82 @@
 import { env } from './config/env';
+import { handleRequest } from './router';
+import {
+  handleWsUpgrade,
+  handleWsOpen,
+  handleWsClose,
+  type WsData,
+} from './ws/server';
+import { handleWsMessage, setWsServer } from './ws/router';
+import { ensureDefaultRoles } from './roles/service';
+import { db } from './db/client';
+import type { ServerWebSocket } from 'bun';
 
-console.log(`Starting ${env.APP_NAME} on port ${env.PORT}...`);
+async function main() {
+  console.log('Connecting to database...');
+  await db.$connect();
 
-// TODO: Initialize database, redis, routes, websocket handlers
+  await ensureDefaultRoles();
 
-const server = Bun.serve({
-  port: env.PORT,
+  console.log(`Starting ${env.APP_NAME} on port ${env.PORT}...`);
 
-  async fetch(req, server) {
-    const url = new URL(req.url);
+  const server = Bun.serve<WsData>({
+    port: env.PORT,
 
-    // WebSocket upgrade
-    if (url.pathname === '/ws') {
-      const upgraded = server.upgrade(req, {
-        data: { /* auth data will go here */ },
-      });
-      if (upgraded) return undefined;
-      return new Response('WebSocket upgrade failed', { status: 400 });
-    }
+    async fetch(req, server) {
+      const url = new URL(req.url);
 
-    // REST API routes
-    if (url.pathname.startsWith('/api/')) {
-      // TODO: Route to handlers
-      return new Response(JSON.stringify({ status: 'ok', app: env.APP_NAME }), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+      // CORS preflight
+      if (req.method === 'OPTIONS') {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Max-Age': '86400',
+          },
+        });
+      }
 
-    return new Response('Not Found', { status: 404 });
-  },
+      // WebSocket upgrade
+      if (url.pathname === '/ws') {
+        return handleWsUpgrade(req, server) as Promise<Response>;
+      }
 
-  websocket: {
-    open(ws) {
-      console.log('WebSocket connected');
+      // REST API
+      return handleRequest(req);
     },
-    message(ws, message) {
-      // TODO: Route to WS handlers
+
+    websocket: {
+      open(ws: ServerWebSocket<WsData>) {
+        handleWsOpen(ws).catch((err) => {
+          console.error('[ws] open handler error:', err);
+        });
+      },
+      message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
+        handleWsMessage(ws, message, server).catch((err) => {
+          console.error('[ws] message handler error:', err);
+        });
+      },
+      close(ws: ServerWebSocket<WsData>, _code: number, _reason: string) {
+        handleWsClose(ws).catch((err) => {
+          console.error('[ws] close handler error:', err);
+        });
+      },
+      perMessageDeflate: true,
+      maxPayloadLength: 1024 * 1024, // 1 MB
+      idleTimeout: 120, // 2 minutes
+      sendPings: true,
     },
-    close(ws, code, reason) {
-      console.log('WebSocket disconnected', code, reason);
-    },
-  },
+  });
+
+  // Provide the server reference to the WS router for channel pub/sub
+  setWsServer(server);
+
+  console.log(`${env.APP_NAME} running at http://localhost:${server.port}`);
+}
+
+main().catch((err) => {
+  console.error('Failed to start:', err);
+  process.exit(1);
 });
-
-console.log(`${env.APP_NAME} running at http://localhost:${server.port}`);
