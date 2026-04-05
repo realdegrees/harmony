@@ -80,8 +80,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl unzip ca-certificates tini && \
     curl -fsSL https://bun.sh/install | bash && \
-    ln -s /root/.bun/bin/bun /usr/local/bin/bun && \
-    ln -s /root/.bun/bin/bunx /usr/local/bin/bunx && \
+    cp /root/.bun/bin/bun /usr/local/bin/bun && \
+    chmod 755 /usr/local/bin/bun && \
+    ln -s /usr/local/bin/bun /usr/local/bin/bunx && \
     rm -rf /var/lib/apt/lists/*
 
 # Workspace manifests (needed for Bun workspace resolution at runtime)
