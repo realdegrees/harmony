@@ -22,6 +22,9 @@
     "db:generate": "bun --filter @harmony/backend prisma generate",
     "db:seed": "bun --filter @harmony/backend db:seed"
   },
+  "trustedDependencies": [
+    "mediasoup"
+  ],
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2"
   }
