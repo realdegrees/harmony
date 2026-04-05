@@ -3,7 +3,7 @@ set -e
 
 echo "Running database migrations..."
 cd /app/backend
-bun x prisma migrate deploy
+DATABASE_URL="${DATABASE_URL:-file:/data/harmony.db}" bun x prisma migrate deploy
 echo "Migrations complete."
 
 cd /app
