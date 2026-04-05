@@ -9,6 +9,7 @@
   import { UserStatus } from '@harmony/shared/types/user';
   import { api } from '$lib/api/client';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
+  import ContextMenu from '$lib/components/ui/ContextMenu.svelte';
   import { ui } from '$lib/stores/ui.svelte';
   import { isTauri, getServerUrl } from '$lib/utils/tauri';
 
@@ -67,16 +68,10 @@
     }
   });
 
-  function handleGlobalClick() {
-    if (ui.contextMenu) {
-      ui.hideContextMenu();
-    }
-  }
+
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="h-screen flex overflow-hidden" onclick={handleGlobalClick}>
+<div class="h-screen flex overflow-hidden">
   {#if auth.isLoading}
     <!-- Loading splash -->
     <div class="flex-1 flex items-center justify-center">
@@ -100,30 +95,11 @@
 
   <!-- Global Context Menu -->
   {#if ui.contextMenu?.visible}
-    <div
-      class="fixed z-[100] bg-white/[0.07] backdrop-blur-2xl rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.5)] border border-white/[0.10] py-1.5 min-w-[180px]"
-      style="left: {ui.contextMenu.x}px; top: {ui.contextMenu.y}px;"
-      role="menu"
-    >
-      {#each ui.contextMenu.items as item}
-        {#if item.divider}
-          <div class="border-t border-divider my-1"></div>
-        {:else}
-          <button
-            class="w-full text-left px-3 py-1.5 text-sm rounded-sm flex items-center gap-2 transition-colors
-              {item.danger
-                ? 'text-danger hover:bg-danger/15'
-                : 'text-text-secondary hover:bg-white/[0.08] hover:text-text-primary'}"
-            role="menuitem"
-            onclick={() => { item.action(); ui.hideContextMenu(); }}
-          >
-            {#if item.icon}
-              <span class="w-4 h-4 flex-shrink-0">{@html item.icon}</span>
-            {/if}
-            {item.label}
-          </button>
-        {/if}
-      {/each}
-    </div>
+    <ContextMenu
+      items={ui.contextMenu.items}
+      x={ui.contextMenu.x}
+      y={ui.contextMenu.y}
+      onclose={() => ui.hideContextMenu()}
+    />
   {/if}
 </div>

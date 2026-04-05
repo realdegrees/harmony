@@ -159,8 +159,6 @@
               </div>
               {#if speaking}
                 <span class="absolute inset-0 rounded-full ring-2 ring-success/40 animate-ping pointer-events-none" aria-hidden="true"></span>
-              {:else if playingClip}
-                <span class="absolute inset-0 rounded-full ring-2 ring-info/30 animate-pulse pointer-events-none" aria-hidden="true"></span>
               {/if}
               {#if vs?.streaming}
                 <span class="absolute -bottom-1 left-1/2 -translate-x-1/2

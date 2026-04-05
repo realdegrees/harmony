@@ -36,6 +36,23 @@
     }
   }
 
+  function onParticipantContextMenu(e: MouseEvent, p: VoiceParticipant) {
+    if (p.userId === auth.user?.id) return;
+    e.preventDefault();
+    e.stopPropagation();
+    ui.showContextMenu(e.clientX, e.clientY, [
+      {
+        type: 'slider',
+        label: 'Volume',
+        min: 0,
+        max: 2,
+        step: 0.05,
+        value: voice.getUserVolume(p.userId),
+        onChange: (v: number) => voice.setUserVolume(p.userId, v),
+      },
+    ]);
+  }
+
   function handleContextMenu(e: MouseEvent, channel: ChannelWithUnread) {
     e.preventDefault();
     ui.showContextMenu(e.clientX, e.clientY, [
@@ -137,7 +154,11 @@
               {@const vs = p.voiceState}
               {@const speaking = voice.speakingUsers.has(p.userId)}
               {@const playingClip = voice.soundboardPlayingUsers.get(p.userId)}
-              <li class="flex items-center gap-1 px-2 py-0.5 text-xs text-text-muted">
+              <li
+                class="flex items-center gap-1 px-2 py-0.5 text-xs text-text-muted
+                       {p.userId !== auth.user?.id ? 'cursor-context-menu' : ''}"
+                oncontextmenu={(e) => onParticipantContextMenu(e, p)}
+              >
                 <div class="rounded-full
                   {speaking
                     ? 'ring-1 ring-success/70'
