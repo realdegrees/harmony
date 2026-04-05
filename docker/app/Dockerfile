@@ -3,6 +3,10 @@
 # Bun (backend) + Node.js (mediasoup SFU subprocess) + SvelteKit static frontend
 # =============================================================================
 
+# Official Bun image — used only to copy the binary so Docker picks the correct
+# variant (standard vs baseline) for the target platform automatically.
+FROM oven/bun:latest AS bun-source
+
 # -----------------------------------------------------------------------------
 # Stage 1: dependencies
 # node:22-bookworm-slim as base so mediasoup's C++ worker can compile.
@@ -12,12 +16,13 @@ FROM node:22-bookworm-slim AS deps
 
 WORKDIR /app
 
-# Install Bun + build tools for mediasoup's native C++ worker in one layer
+# Copy Bun binary from official image and install build tools for mediasoup
+COPY --from=bun-source /usr/local/bin/bun /usr/local/bin/bun
+RUN chmod 755 /usr/local/bin/bun && \
+    ln -s /usr/local/bin/bun /usr/local/bin/bunx
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        curl unzip ca-certificates python3 build-essential && \
-    curl -fsSL https://bun.sh/install | bash && \
-    ln -s /root/.bun/bin/bun /usr/local/bin/bun && \
+        python3 build-essential && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy workspace manifests for layer caching
@@ -75,14 +80,13 @@ FROM node:22-bookworm-slim AS production
 
 WORKDIR /app
 
-# Runtime tools: Bun (runs backend), tini (PID 1), curl (healthcheck)
+# Copy Bun binary from official image; install tini and curl for healthcheck
+COPY --from=bun-source /usr/local/bin/bun /usr/local/bin/bun
+RUN chmod 755 /usr/local/bin/bun && \
+    ln -s /usr/local/bin/bun /usr/local/bin/bunx
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        curl unzip ca-certificates tini && \
-    curl -fsSL https://bun.sh/install | bash && \
-    cp /root/.bun/bin/bun /usr/local/bin/bun && \
-    chmod 755 /usr/local/bin/bun && \
-    ln -s /usr/local/bin/bun /usr/local/bin/bunx && \
+        curl ca-certificates tini && \
     rm -rf /var/lib/apt/lists/*
 
 # Workspace manifests (needed for Bun workspace resolution at runtime)
