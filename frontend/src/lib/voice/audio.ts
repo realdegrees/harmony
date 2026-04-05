@@ -124,6 +124,8 @@ export function getAudioContext(): AudioContext {
   if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
     sharedAudioContext = new AudioContext({ sampleRate: 48_000 });
   }
+  // Resume synchronously triggers the async operation; the context will be
+  // running by the time the next analyser poll fires (100 ms later).
   if (sharedAudioContext.state === 'suspended') {
     sharedAudioContext.resume().catch(console.error);
   }

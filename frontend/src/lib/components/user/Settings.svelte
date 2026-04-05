@@ -65,6 +65,8 @@
   let testingMic = $state(false);
   let micTestLevel = $state(0);
   let micTestInterval: ReturnType<typeof setInterval> | null = null;
+  let micTestStream: MediaStream | null = null;
+  let micTestCtx: AudioContext | null = null;
 
   $effect(() => {
     if (auth.user) {
@@ -133,6 +135,8 @@
 
   function stopMicTest() {
     if (micTestInterval) { clearInterval(micTestInterval); micTestInterval = null; }
+    if (micTestStream) { micTestStream.getTracks().forEach(t => t.stop()); micTestStream = null; }
+    if (micTestCtx) { micTestCtx.close().catch(() => {}); micTestCtx = null; }
     testingMic = false;
     micTestLevel = 0;
   }
@@ -150,6 +154,8 @@
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       const ctx = new AudioContext();
+      micTestStream = stream;
+      micTestCtx = ctx;
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
@@ -159,11 +165,6 @@
       const data = new Uint8Array(analyser.frequencyBinCount);
 
       micTestInterval = setInterval(() => {
-        if (!testingMic) {
-          stream.getTracks().forEach(t => t.stop());
-          ctx.close();
-          return;
-        }
         analyser.getByteFrequencyData(data);
         let sum = 0;
         for (const v of data) sum += v * v;

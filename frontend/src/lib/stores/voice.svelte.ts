@@ -1,6 +1,6 @@
 import { ws } from '$lib/api/ws';
 import { getStreamByType } from '$lib/voice/streaming';
-import { getMicrophoneStream, watchSpeaking } from '$lib/voice/audio';
+import { getMicrophoneStream, watchSpeaking, getAudioContext } from '$lib/voice/audio';
 import { RtcSession } from '$lib/voice/rtc';
 import { auth } from '$lib/stores/auth.svelte';
 import type { VoiceParticipant, StreamType, StreamConfig, MediaServerTransport } from '@harmony/shared/types/voice';
@@ -156,7 +156,11 @@ class VoiceStore {
     // consume their track so we can display it.
     ws.on<VoiceNewProducerPayload>('voice:new-producer', async (data) => {
       if (!this.rtc) return;
+      // Don't consume our own producers
+      if (data.userId === auth.user?.id) return;
       try {
+        // Ensure the Device and transports are fully initialized before consuming
+        await this.rtc.whenReady();
         const stream = await this.rtc.consume(data.producerInfo, data.userId);
         const streams = new Map(this.remoteStreams);
         streams.set(data.userId, stream);
@@ -230,11 +234,15 @@ class VoiceStore {
 
     // Get mic once — use it for both speaking detection and audio production
     if (typeof navigator !== 'undefined') {
+      // Resume the shared AudioContext now (we're inside a user gesture)
+      getAudioContext().resume().catch(() => {});
+
       getMicrophoneStream(this.preferredMicrophoneId ?? undefined)
         .then(async (stream) => {
           this.micStream = stream;
-          if (auth.user?.id) {
-            this.startSpeakingWatcher(auth.user.id, stream);
+          const selfId = auth.user?.id;
+          if (selfId) {
+            this.startSpeakingWatcher(selfId, stream);
           }
           // Wait for RTC transports to be fully ready, then produce mic audio
           await rtc.whenReady();
