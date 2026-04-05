@@ -32,19 +32,18 @@
 
   function openReactionPicker(e: MouseEvent) {
     const btn = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const pickerW = 320; // EmojiPicker width (w-80)
-    const pickerH = 384; // EmojiPicker height (h-96)
+    // ReactionPicker is a small horizontal pill (~300px wide, ~40px tall)
+    const pickerW = 300;
+    const pickerH = 40;
     const margin = 8;
 
-    // Prefer opening upward from the button
     let top: number;
     let left: number;
 
+    // Prefer opening above the button
     if (btn.top - pickerH - margin > 0) {
-      // Enough room above
       top = btn.top - pickerH - margin;
     } else {
-      // Open downward
       top = btn.bottom + margin;
     }
 
@@ -320,6 +319,6 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div class="fixed inset-0 z-40" onclick={() => (reactionPickerOpen = false)}></div>
   <div class="fixed z-50" style={pickerStyle}>
-    <ReactionPicker {message} />
+    <ReactionPicker {message} onclose={() => (reactionPickerOpen = false)} />
   </div>
 {/if}

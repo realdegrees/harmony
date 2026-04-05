@@ -1,11 +1,14 @@
 import { api } from '$lib/api/client';
 import { ws } from '$lib/api/ws';
 import { channels } from '$lib/stores/channels.svelte';
+import { auth } from '$lib/stores/auth.svelte';
 import type { Message, PaginatedMessages } from '@harmony/shared/types/message';
 import type {
   MessageNewPayload,
   MessageUpdatedPayload,
   MessageDeletedPayload,
+  ReactionAddedPayload,
+  ReactionRemovedPayload,
 } from '@harmony/shared/types/ws-events';
 
 const DEFAULT_LIMIT = 50;
@@ -52,6 +55,47 @@ class MessagesStore {
           existing.filter((m) => m.id !== data.messageId)
         );
       }
+    });
+
+    ws.on<ReactionAddedPayload>('reaction:added', (data) => {
+      const { messageId, channelId, reaction } = data;
+      const existing = this.messagesByChannel.get(channelId);
+      if (!existing) return;
+      this.messagesByChannel = new Map(this.messagesByChannel).set(
+        channelId,
+        existing.map((m) => {
+          if (m.id !== messageId) return m;
+          const key = reaction.emojiId ?? reaction.emojiUnicode;
+          const reactions = m.reactions.filter(
+            (r) => (r.emojiId ?? r.emojiUnicode) !== key
+          );
+          return { ...m, reactions: [...reactions, reaction] };
+        })
+      );
+    });
+
+    ws.on<ReactionRemovedPayload>('reaction:removed', (data) => {
+      const { messageId, channelId, emojiId, emojiUnicode, userId } = data;
+      const existing = this.messagesByChannel.get(channelId);
+      if (!existing) return;
+      const key = emojiId ?? emojiUnicode;
+      this.messagesByChannel = new Map(this.messagesByChannel).set(
+        channelId,
+        existing.map((m) => {
+          if (m.id !== messageId) return m;
+          const reactions = m.reactions
+            .map((r) => {
+              if ((r.emojiId ?? r.emojiUnicode) !== key) return r;
+              const newCount = r.count - 1;
+              if (newCount <= 0) return null;
+              // If the user who removed the reaction is the current user, clear the reacted flag
+              const isCurrentUser = userId === auth.user?.id;
+              return { ...r, count: newCount, reacted: r.reacted && isCurrentUser ? false : r.reacted };
+            })
+            .filter((r): r is NonNullable<typeof r> => r !== null);
+          return { ...m, reactions };
+        })
+      );
     });
   }
 
