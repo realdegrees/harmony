@@ -147,9 +147,9 @@
             <div class="relative">
               <div class="rounded-full transition-all duration-150
                 {speaking
-                  ? 'ring-2 ring-success ring-offset-2 ring-offset-transparent shadow-[0_0_16px_rgba(47,182,122,0.5)]'
+                  ? 'ring-2 ring-success ring-offset-2 ring-offset-transparent shadow-[0_0_12px_rgba(47,182,122,0.4)]'
                   : playingClip
-                    ? 'ring-2 ring-info ring-offset-2 ring-offset-transparent shadow-[0_0_16px_rgba(74,158,255,0.5)]'
+                    ? 'ring-2 ring-info ring-offset-2 ring-offset-transparent'
                     : ''}">
                 <Avatar
                   src={p.user.avatarPath}
@@ -160,7 +160,7 @@
               {#if speaking}
                 <span class="absolute inset-0 rounded-full ring-2 ring-success/40 animate-ping pointer-events-none" aria-hidden="true"></span>
               {:else if playingClip}
-                <span class="absolute inset-0 rounded-full ring-2 ring-info/40 animate-ping pointer-events-none" aria-hidden="true"></span>
+                <span class="absolute inset-0 rounded-full ring-2 ring-info/30 animate-pulse pointer-events-none" aria-hidden="true"></span>
               {/if}
               {#if vs?.streaming}
                 <span class="absolute -bottom-1 left-1/2 -translate-x-1/2

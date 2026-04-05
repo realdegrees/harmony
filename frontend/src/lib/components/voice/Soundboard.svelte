@@ -67,6 +67,11 @@
     loadLocalSounds();
   });
 
+  // Apply volume changes live to the currently playing clip
+  $effect(() => {
+    if (currentAudio) currentAudio.volume = voice.soundboardVolume;
+  });
+
   function playServerClip(clip: SoundClip) {
     // Stop any currently playing clip first
     if (playingId === clip.id) { stopCurrentClip(); return; }
