@@ -41,6 +41,9 @@ class VoiceStore {
   // Reactive map of userId → remote MediaStream (populated as consumers are set up)
   remoteStreams = $state(new Map<string, MediaStream>());
 
+  // Hidden <audio> elements that play remote streams — one per remote user
+  private audioElements = new Map<string, HTMLAudioElement>();
+
   // The local screen/camera capture stream
   private activeStream: MediaStream | null = null;
 
@@ -107,10 +110,11 @@ class VoiceStore {
         data.channelId,
         existing.filter((p) => p.userId !== data.userId),
       );
-      // Clean up any remote stream for this user
+      // Clean up any remote stream and audio element for this user
       const streams = new Map(this.remoteStreams);
       streams.delete(data.userId);
       this.remoteStreams = streams;
+      this.removeRemoteAudio(data.userId);
       // Stop their speaking watcher
       this.speakingWatchers.get(data.userId)?.();
       this.speakingWatchers.delete(data.userId);
@@ -166,8 +170,9 @@ class VoiceStore {
         streams.set(data.userId, stream);
         this.remoteStreams = streams;
 
-        // Watch the received audio stream for speaking detection
+        // Play audio via a hidden <audio> element
         if (data.producerInfo.kind === 'audio') {
+          this.playRemoteStream(data.userId, stream);
           this.startSpeakingWatcher(data.userId, stream);
         }
       } catch (err) {
@@ -281,11 +286,30 @@ class VoiceStore {
     this.rtc = null;
     this.remoteStreams = new Map();
 
+    // Remove all hidden audio elements
+    for (const userId of this.audioElements.keys()) this.removeRemoteAudio(userId);
+
     ws.send({ type: 'voice:leave', data: {} });
     this.currentChannelId = null;
     this.localMuted = false;
     this.localDeafened = false;
     this.isStreaming = false;
+  }
+
+  private playRemoteStream(userId: string, stream: MediaStream): void {
+    // Remove any existing audio element for this user
+    const old = this.audioElements.get(userId);
+    if (old) { old.srcObject = null; old.remove(); }
+    const audio = document.createElement('audio');
+    audio.autoplay = true;
+    audio.srcObject = stream;
+    document.body.appendChild(audio);
+    this.audioElements.set(userId, audio);
+  }
+
+  private removeRemoteAudio(userId: string): void {
+    const audio = this.audioElements.get(userId);
+    if (audio) { audio.srcObject = null; audio.remove(); this.audioElements.delete(userId); }
   }
 
   private startSpeakingWatcher(userId: string, stream: MediaStream): void {
