@@ -161,8 +161,7 @@ export async function handleVoiceConsume(
     const result = await mediaClient.consume(
       entry.recvTransportId,
       data.producerId,
-      // rtpCapabilities are passed from the client to the media server when consuming
-      undefined,
+      data.rtpCapabilities,
       voiceState.channelId,
     ) as ConsumerInfo;
 

@@ -257,7 +257,7 @@ export async function consumeProducer(
     });
   });
 
-  ws.send({ type: 'voice:consume', data: { producerId: producerInfo.producerId } });
+  ws.send({ type: 'voice:consume', data: { producerId: producerInfo.producerId, rtpCapabilities: device!.rtpCapabilities } });
 }
 
 function removeConsumer(consumerId: string, userId: string): void {

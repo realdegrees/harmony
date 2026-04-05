@@ -68,6 +68,7 @@ export interface VoiceProducePayload {
 
 export interface VoiceConsumePayload {
   producerId: string;
+  rtpCapabilities: unknown;
 }
 
 export interface VoiceResumeConsumerPayload {
