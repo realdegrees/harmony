@@ -30,6 +30,7 @@ import {
 } from '../voice/rooms';
 import { startStream, stopStream } from '../voice/streaming';
 import { db } from '../db/client';
+import { getStorage } from '../media/storage';
 import { Permissions, hasPermission } from '@harmony/shared/constants/permissions';
 
 // ---------------------------------------------------------------------------
@@ -554,7 +555,7 @@ export async function handleWsMessage(
       // Soundboard
       // -----------------------------------------------------------------------
       case 'soundboard:play': {
-        const { clipId } = event.data;
+        const { clipId, clipData } = event.data;
 
         const vs = await getUserVoiceState(userId);
         if (!vs) {
@@ -562,16 +563,29 @@ export async function handleWsMessage(
           return;
         }
 
-        // Resolve a display name for the clip (server clips only; local clips
-        // won't be found in the DB so clipId is used as the fallback name)
+        // Handle explicit stop request
+        if (clipId === '__stop__') {
+          broadcastToChannel(server, vs.channelId, {
+            type: 'soundboard:playing',
+            data: { channelId: vs.channelId, userId, clipName: '', stopped: true },
+          });
+          break;
+        }
+
+        // Resolve clip metadata for server clips
         let clipName = clipId;
+        let clipUrl: string | undefined;
+        let duration: number | undefined;
         try {
           const clip = await db.soundClip.findUnique({
             where: { id: clipId },
-            select: { name: true, duration: true },
+            select: { name: true, duration: true, path: true },
           });
           if (clip) {
             clipName = clip.name;
+            duration = clip.duration;
+            // Build the public URL the client can fetch to play the audio
+            clipUrl = getStorage().getUrl(clip.path);
           }
         } catch {
           // Non-fatal: use clipId as fallback
@@ -583,7 +597,9 @@ export async function handleWsMessage(
             channelId: vs.channelId,
             userId,
             clipName,
-            duration: undefined,
+            duration,
+            clipUrl,
+            clipData, // Forward base64 for local clips
           },
         });
 

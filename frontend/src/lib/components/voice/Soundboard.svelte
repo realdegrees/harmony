@@ -3,6 +3,7 @@
   import { AssetScope } from '@harmony/shared/types/emoji';
   import { api } from '$lib/api/client';
   import { ws } from '$lib/api/ws';
+  import { voice } from '$lib/stores/voice.svelte';
   import { getLocalSounds, saveLocalSound, deleteLocalSound } from '$lib/utils/local-storage';
   import { formatDuration } from '$lib/utils/format';
 
@@ -72,8 +73,19 @@
     stopCurrentClip();
 
     playingId = clip.id;
+
+    // Play locally so the sender hears their own clip
+    const audio = new Audio(clip.url);
+    audio.volume = voice.soundboardVolume;
+    currentAudio = audio;
+    audio.onended = () => {
+      if (currentAudio === audio) currentAudio = null;
+      if (playingId === clip.id) playingId = null;
+    };
+    audio.play().catch(() => {});
+
+    // Notify the channel
     ws.send({ type: 'soundboard:play', data: { clipId: clip.id } });
-    setTimeout(() => { if (playingId === clip.id) playingId = null; }, (clip.duration * 1000) + 500);
   }
 
   async function playLocalClip(sound: LocalSound) {
@@ -84,6 +96,7 @@
     playingId = sound.id;
     const url = URL.createObjectURL(sound.blob);
     const audio = new Audio(url);
+    audio.volume = voice.soundboardVolume;
     currentAudio = audio;
     audio.onended = () => {
       URL.revokeObjectURL(url);
@@ -321,5 +334,30 @@
         </div>
       {/if}
     {/if}
+  </div>
+
+  <!-- Volume control — sticky at the bottom -->
+  <div class="px-3 py-2.5 border-t border-divider shrink-0">
+    <div class="flex items-center justify-between mb-1.5">
+      <span class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+        Soundboard Volume
+      </span>
+      <span class="text-xs font-semibold text-text-primary tabular-nums">
+        {Math.round(voice.soundboardVolume * 100)}%
+      </span>
+    </div>
+    <input
+      type="range"
+      min="0"
+      max="1"
+      step="0.05"
+      value={voice.soundboardVolume}
+      oninput={(e) => voice.setSoundboardVolume(parseFloat((e.target as HTMLInputElement).value))}
+      class="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/[0.12] accent-brand"
+      aria-label="Soundboard Volume"
+    />
   </div>
 </div>

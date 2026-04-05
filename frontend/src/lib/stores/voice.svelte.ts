@@ -21,6 +21,7 @@ const PREFS_KEY = 'harmony:audio-prefs';
 interface AudioPrefs {
   microphoneId: string | null;
   speakerId: string | null;
+  soundboardVolume: number;
 }
 
 function loadAudioPrefs(): AudioPrefs {
@@ -28,7 +29,7 @@ function loadAudioPrefs(): AudioPrefs {
     const raw = localStorage.getItem(PREFS_KEY);
     if (raw) return JSON.parse(raw) as AudioPrefs;
   } catch {}
-  return { microphoneId: null, speakerId: null };
+  return { microphoneId: null, speakerId: null, soundboardVolume: 1 };
 }
 
 class VoiceStore {
@@ -63,6 +64,8 @@ class VoiceStore {
   soundboardPlayingUsers = $state(new Map<string, string>());
   // Timers to auto-clear soundboard indicator after clip duration
   private soundboardTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  // Audio elements for incoming soundboard clips (keyed by userId)
+  private soundboardAudios = new Map<string, HTMLAudioElement>();
 
   // mediasoup session — one per voice channel connection
   private rtc: RtcSession | null = null;
@@ -70,12 +73,15 @@ class VoiceStore {
   // Preferred audio device IDs (null = system default)
   preferredMicrophoneId = $state<string | null>(null);
   preferredSpeakerId = $state<string | null>(null);
+  // Volume for both outgoing and incoming soundboard audio (0–1)
+  soundboardVolume = $state(1);
 
   constructor() {
     if (typeof window !== 'undefined') {
       const prefs = loadAudioPrefs();
       this.preferredMicrophoneId = prefs.microphoneId;
       this.preferredSpeakerId = prefs.speakerId;
+      this.soundboardVolume = prefs.soundboardVolume ?? 1;
     }
 
     // ── Error handling ──────────────────────────────────────────────────────
@@ -198,13 +204,57 @@ class VoiceStore {
     });
 
     ws.on<SoundboardPlayingPayload>('soundboard:playing', (data) => {
+      // Stop any existing audio for this user
+      const existing = this.soundboardAudios.get(data.userId);
+      if (existing) { existing.pause(); existing.src = ''; this.soundboardAudios.delete(data.userId); }
+      if (this.soundboardTimers.has(data.userId)) {
+        clearTimeout(this.soundboardTimers.get(data.userId)!);
+        this.soundboardTimers.delete(data.userId);
+      }
+
+      // If this is a stop event, clear the indicator and bail
+      if (data.stopped) {
+        const m = new Map(this.soundboardPlayingUsers);
+        m.delete(data.userId);
+        this.soundboardPlayingUsers = m;
+        return;
+      }
+
+      // Update the indicator map
       const next = new Map(this.soundboardPlayingUsers);
       next.set(data.userId, data.clipName);
       this.soundboardPlayingUsers = next;
-      // Clear after clip duration + 500ms buffer, or 30s max fallback
-      if (this.soundboardTimers.has(data.userId)) {
-        clearTimeout(this.soundboardTimers.get(data.userId)!);
+
+      // Play audio for other users' clips (sender plays locally in Soundboard.svelte)
+      if (data.userId !== auth.user?.id) {
+        let audioUrl: string | null = null;
+        let isObjectUrl = false;
+
+        if (data.clipUrl) {
+          audioUrl = data.clipUrl;
+        } else if (data.clipData) {
+          // Decode base64 local clip
+          const binary = atob(data.clipData);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const blob = new Blob([bytes], { type: 'audio/ogg' });
+          audioUrl = URL.createObjectURL(blob);
+          isObjectUrl = true;
+        }
+
+        if (audioUrl) {
+          const audio = new Audio(audioUrl);
+          audio.volume = this.soundboardVolume;
+          audio.onended = () => {
+            if (isObjectUrl) URL.revokeObjectURL(audioUrl!);
+            this.soundboardAudios.delete(data.userId);
+          };
+          audio.play().catch(() => {});
+          this.soundboardAudios.set(data.userId, audio);
+        }
       }
+
+      // Auto-clear indicator after duration
       const clearAfter = data.duration != null ? data.duration * 1000 + 500 : 30_000;
       this.soundboardTimers.set(data.userId, setTimeout(() => {
         const m = new Map(this.soundboardPlayingUsers);
@@ -280,9 +330,11 @@ class VoiceStore {
     this.speakingWatchers.clear();
     this.speakingUsers = new Set();
 
-    // Clear soundboard timers
+    // Clear soundboard timers and stop any playing soundboard audio
     for (const t of this.soundboardTimers.values()) clearTimeout(t);
     this.soundboardTimers.clear();
+    for (const audio of this.soundboardAudios.values()) { audio.pause(); audio.src = ''; }
+    this.soundboardAudios.clear();
     this.soundboardPlayingUsers = new Map();
 
     this.rtc?.dispose();
@@ -429,6 +481,15 @@ class VoiceStore {
     this.saveAudioPrefs();
   }
 
+  setSoundboardVolume(volume: number): void {
+    this.soundboardVolume = volume;
+    // Update any currently playing incoming soundboard audios
+    for (const audio of this.soundboardAudios.values()) {
+      audio.volume = volume;
+    }
+    this.saveAudioPrefs();
+  }
+
   private saveAudioPrefs(): void {
     try {
       localStorage.setItem(
@@ -436,6 +497,7 @@ class VoiceStore {
         JSON.stringify({
           microphoneId: this.preferredMicrophoneId,
           speakerId: this.preferredSpeakerId,
+          soundboardVolume: this.soundboardVolume,
         } satisfies AudioPrefs),
       );
     } catch {}

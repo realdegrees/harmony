@@ -200,6 +200,12 @@ export interface SoundboardPlayingPayload {
   clipName: string;
   /** Duration of the clip in seconds. Used by clients to auto-clear the indicator. */
   duration?: number;
+  /** Relative URL for server clips so receivers can fetch and play the audio. */
+  clipUrl?: string;
+  /** Base64-encoded audio data for locally-sourced clips. */
+  clipData?: string;
+  /** True when the user explicitly stopped playback. */
+  stopped?: boolean;
 }
 
 export interface ReactionAddedPayload {
