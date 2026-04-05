@@ -103,3 +103,18 @@ export async function getAllVoiceStates(): Promise<Map<string, VoiceState[]>> {
 
   return result;
 }
+
+export async function getAllVoiceParticipants(): Promise<Record<string, VoiceParticipant[]>> {
+  // Gather all unique channelIds with participants
+  const channelIds = new Set<string>();
+  for (const state of voiceStateMap.values()) {
+    channelIds.add(state.channelId);
+  }
+
+  const result: Record<string, VoiceParticipant[]> = {};
+  for (const channelId of channelIds) {
+    result[channelId] = await getVoiceChannelParticipants(channelId);
+  }
+
+  return result;
+}

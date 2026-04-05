@@ -127,6 +127,22 @@ export class RtcSession {
     });
   }
 
+  async produceMic(stream: MediaStream): Promise<string> {
+    if (!this.sendTransport) throw new Error('[rtc] send transport not ready');
+    const track = stream.getAudioTracks()[0];
+    if (!track) throw new Error('[rtc] no audio track in mic stream');
+    const producer = await this.sendTransport.produce({
+      track,
+      appData: { streamType: 'mic', trackKind: 'audio' },
+    });
+    this.producers.set(producer.id, producer);
+    producer.on('trackended', () => {
+      producer.close();
+      this.producers.delete(producer.id);
+    });
+    return producer.id;
+  }
+
   async produce(stream: MediaStream): Promise<string[]> {
     if (!this.sendTransport) throw new Error('[rtc] send transport not ready');
     const producerIds: string[] = [];
@@ -148,7 +164,7 @@ export class RtcSession {
   async consume(info: ProducerInfo, userId: string): Promise<MediaStream> {
     if (!this.recvTransport || !this.device) throw new Error('[rtc] recv transport not ready');
 
-    ws.send({ type: 'voice:consume', data: { producerId: info.producerId } });
+    ws.send({ type: 'voice:consume', data: { producerId: info.producerId, rtpCapabilities: this.device.rtpCapabilities } });
 
     const consumerInfo = await new Promise<ConsumerInfo>((resolve, reject) => {
       const timer = setTimeout(() => { off(); reject(new Error('[rtc] consume timeout')); }, 10_000);

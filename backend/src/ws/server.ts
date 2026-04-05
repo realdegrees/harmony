@@ -3,7 +3,7 @@ import { db } from '../db/client';
 import { getAllChannels } from '../channels/service';
 import { setPresence, removePresence } from './presence';
 import { handleVoiceLeave } from '../voice/signaling';
-import { getUserVoiceState } from '../voice/rooms';
+import { getUserVoiceState, getAllVoiceParticipants } from '../voice/rooms';
 import { UserStatus } from '@harmony/shared/types/user';
 import type { ServerWebSocket } from 'bun';
 
@@ -170,6 +170,14 @@ export async function handleWsOpen(ws: ServerWebSocket<WsData>): Promise<void> {
     },
     // Don't exclude self — the user's other tabs should also receive this
   );
+
+  // Send current voice state snapshot so the client shows existing participants
+  try {
+    const channels = await getAllVoiceParticipants();
+    ws.send(JSON.stringify({ type: 'voice:state-sync', data: { channels } }));
+  } catch (err) {
+    console.error('[ws] Failed to send voice state sync:', err);
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -138,6 +138,11 @@ export interface PresenceChangedPayload {
   status: UserStatus;
 }
 
+export interface VoiceStateSyncPayload {
+  /** Map of channelId → participants currently in that channel. */
+  channels: Record<string, VoiceParticipant[]>;
+}
+
 export interface VoiceUserJoinedPayload {
   channelId: string;
   participant: VoiceParticipant;

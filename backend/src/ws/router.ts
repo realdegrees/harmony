@@ -21,6 +21,7 @@ import {
   handleVoiceConsume,
   handleVoiceConnectTransport,
   handleVoiceResumeConsumer,
+  getChannelProducers,
 } from '../voice/signaling';
 import {
   updateVoiceState,
@@ -350,6 +351,22 @@ export async function handleWsMessage(
             type: 'voice:transport-created',
             data: { direction: 'recv', transport: transportResult.recvTransport },
           });
+
+          // Notify the new joiner about all existing producers in this channel
+          // so they can consume them immediately without waiting for new events.
+          try {
+            const existingProducers = await getChannelProducers(channelId);
+            for (const { userId: producerUserId, producerInfo } of existingProducers) {
+              // Don't notify the user about their own producers
+              if (producerUserId === userId) continue;
+              sendToUser(userId, {
+                type: 'voice:new-producer',
+                data: { userId: producerUserId, producerInfo },
+              });
+            }
+          } catch (err) {
+            console.warn('[voice] Failed to send existing producers to new joiner:', err);
+          }
         } else {
           // Inform the client that audio is unavailable (media server down)
           // but the join itself succeeded.

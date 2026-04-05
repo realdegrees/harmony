@@ -5,6 +5,7 @@ import { RtcSession } from '$lib/voice/rtc';
 import { auth } from '$lib/stores/auth.svelte';
 import type { VoiceParticipant, StreamType, StreamConfig, MediaServerTransport } from '@harmony/shared/types/voice';
 import type {
+  VoiceStateSyncPayload,
   VoiceUserJoinedPayload,
   VoiceUserLeftPayload,
   VoiceStateUpdatePayload,
@@ -80,6 +81,15 @@ class VoiceStore {
       }
     });
 
+    // ── Initial voice state snapshot ────────────────────────────────────────
+    ws.on<VoiceStateSyncPayload>('voice:state-sync', (data) => {
+      const map = new Map<string, VoiceParticipant[]>();
+      for (const [channelId, participants] of Object.entries(data.channels)) {
+        if (participants.length > 0) map.set(channelId, participants);
+      }
+      this.participants = map;
+    });
+
     // ── Room presence ───────────────────────────────────────────────────────
     ws.on<VoiceUserJoinedPayload>('voice:user-joined', (data) => {
       const existing = this.participants.get(data.channelId) ?? [];
@@ -132,6 +142,24 @@ class VoiceStore {
         this.rtc.setSendTransport(data.transport, data.rtpCapabilities);
       } else {
         this.rtc.setRecvTransport(data.transport);
+        // Recv transport is set last — RTC device is now initialized.
+        // Produce the local mic stream so other participants can hear us.
+        if (this.micStream) {
+          this.rtc.produceMic(this.micStream).catch((err) => {
+            console.warn('[voice] Failed to produce mic audio:', err);
+          });
+        } else {
+          // Mic stream may still be loading — wait for it
+          getMicrophoneStream(this.preferredMicrophoneId ?? undefined)
+            .then((stream) => {
+              this.micStream = stream;
+              if (auth.user?.id) this.startSpeakingWatcher(auth.user.id, stream);
+              return this.rtc?.produceMic(stream);
+            })
+            .catch((err) => {
+              console.warn('[voice] Failed to get mic or produce audio:', err);
+            });
+        }
       }
     });
 

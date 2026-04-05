@@ -3,6 +3,7 @@ import {
   joinVoiceChannel,
   leaveVoiceChannel,
   getUserVoiceState,
+  getVoiceChannelParticipants,
 } from './rooms';
 import type {
   VoiceProducePayload,
@@ -10,12 +11,18 @@ import type {
   VoiceConnectTransportPayload,
   VoiceResumeConsumerPayload,
 } from '@harmony/shared/types/ws-events';
-import type { ConsumerInfo } from '@harmony/shared/types/voice';
+import type { ConsumerInfo, ProducerInfo } from '@harmony/shared/types/voice';
+
+interface ProducerRecord {
+  producerId: string;
+  kind: 'audio' | 'video';
+  appData: Record<string, unknown>;
+}
 
 interface UserTransports {
   sendTransportId: string | null;
   recvTransportId: string | null;
-  producerIds: string[];
+  producers: ProducerRecord[];
   consumerIds: string[];
 }
 
@@ -28,7 +35,7 @@ function getOrCreateUserTransports(userId: string): UserTransports {
     entry = {
       sendTransportId: null,
       recvTransportId: null,
-      producerIds: [],
+      producers: [],
       consumerIds: [],
     };
     userTransports.set(userId, entry);
@@ -104,7 +111,7 @@ export async function handleVoiceLeave(userId: string): Promise<void> {
 
     // Close all producers
     await Promise.allSettled(
-      entry.producerIds.map((id) => mediaClient.closeProducer(id)),
+      entry.producers.map((p) => mediaClient.closeProducer(p.producerId)),
     );
 
     // Close transports
@@ -140,7 +147,11 @@ export async function handleVoiceProduce(
     data.appData,
   ) as { producerId: string };
 
-  entry.producerIds.push(result.producerId);
+  entry.producers.push({
+    producerId: result.producerId,
+    kind: data.kind,
+    appData: data.appData,
+  });
   return { producerId: result.producerId };
 }
 
@@ -184,4 +195,32 @@ export async function handleVoiceResumeConsumer(
   data: VoiceResumeConsumerPayload,
 ): Promise<void> {
   await mediaClient.resumeConsumer(data.consumerId);
+}
+
+/**
+ * Returns all active producers for every user currently in a channel,
+ * so that a newly-joining user can consume them.
+ */
+export async function getChannelProducers(
+  channelId: string,
+): Promise<Array<{ userId: string; producerInfo: ProducerInfo }>> {
+  const participants = await getVoiceChannelParticipants(channelId);
+  const result: Array<{ userId: string; producerInfo: ProducerInfo }> = [];
+
+  for (const participant of participants) {
+    const entry = userTransports.get(participant.userId);
+    if (!entry) continue;
+    for (const p of entry.producers) {
+      result.push({
+        userId: participant.userId,
+        producerInfo: {
+          producerId: p.producerId,
+          kind: p.kind,
+          appData: p.appData,
+        },
+      });
+    }
+  }
+
+  return result;
 }
