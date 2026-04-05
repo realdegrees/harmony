@@ -77,6 +77,16 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
 
   // -------------------------------------------------------------------------
+  // Health check — no authentication required (used by Docker/Traefik)
+  // -------------------------------------------------------------------------
+  if (path === '/api/health' && req.method === 'GET') {
+    return addCors(new Response(JSON.stringify({ status: 'ok' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+  }
+
+  // -------------------------------------------------------------------------
   // All other routes require a valid Bearer token
   // -------------------------------------------------------------------------
   const auth = await authenticateRequest(req);
