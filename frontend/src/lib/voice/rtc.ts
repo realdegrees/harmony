@@ -29,6 +29,19 @@ export class RtcSession {
   private recvTransportData: MediaServerTransport | null = null;
   private rtpCapabilities: unknown = null;
 
+  // Resolves when init() completes successfully
+  private _readyResolve: (() => void) | null = null;
+  private _readyReject: ((err: unknown) => void) | null = null;
+  private _readyPromise: Promise<void> = new Promise((resolve, reject) => {
+    this._readyResolve = resolve;
+    this._readyReject = reject;
+  });
+
+  /** Awaitable — resolves once the Device and both transports are ready. */
+  whenReady(): Promise<void> {
+    return this._readyPromise;
+  }
+
   setSendTransport(data: MediaServerTransport, rtpCapabilities: unknown): void {
     this.sendTransportData = data;
     this.rtpCapabilities = rtpCapabilities;
@@ -44,8 +57,10 @@ export class RtcSession {
     if (this.device || !this.sendTransportData || !this.recvTransportData || !this.rtpCapabilities) return;
     try {
       await this.init();
+      this._readyResolve?.();
     } catch (err) {
       console.warn('[rtc] init failed:', err);
+      this._readyReject?.(err);
     }
   }
 

@@ -153,6 +153,8 @@
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
+      // Route mic audio back to speakers so user can hear themselves
+      src.connect(ctx.destination);
       src.connect(analyser);
       const data = new Uint8Array(analyser.frequencyBinCount);
 

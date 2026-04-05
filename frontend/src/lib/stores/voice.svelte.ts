@@ -142,24 +142,6 @@ class VoiceStore {
         this.rtc.setSendTransport(data.transport, data.rtpCapabilities);
       } else {
         this.rtc.setRecvTransport(data.transport);
-        // Recv transport is set last — RTC device is now initialized.
-        // Produce the local mic stream so other participants can hear us.
-        if (this.micStream) {
-          this.rtc.produceMic(this.micStream).catch((err) => {
-            console.warn('[voice] Failed to produce mic audio:', err);
-          });
-        } else {
-          // Mic stream may still be loading — wait for it
-          getMicrophoneStream(this.preferredMicrophoneId ?? undefined)
-            .then((stream) => {
-              this.micStream = stream;
-              if (auth.user?.id) this.startSpeakingWatcher(auth.user.id, stream);
-              return this.rtc?.produceMic(stream);
-            })
-            .catch((err) => {
-              console.warn('[voice] Failed to get mic or produce audio:', err);
-            });
-        }
       }
     });
 
@@ -241,21 +223,25 @@ class VoiceStore {
   // ── Public actions ──────────────────────────────────────────────────────
 
   joinChannel(id: string): void {
-    this.rtc = new RtcSession();
+    const rtc = new RtcSession();
+    this.rtc = rtc;
     this.currentChannelId = id;
     ws.send({ type: 'voice:join', data: { channelId: id } });
 
-    // Start monitoring the local mic for speaking detection (best-effort)
+    // Get mic once — use it for both speaking detection and audio production
     if (typeof navigator !== 'undefined') {
       getMicrophoneStream(this.preferredMicrophoneId ?? undefined)
-        .then((stream) => {
+        .then(async (stream) => {
           this.micStream = stream;
           if (auth.user?.id) {
             this.startSpeakingWatcher(auth.user.id, stream);
           }
+          // Wait for RTC transports to be fully ready, then produce mic audio
+          await rtc.whenReady();
+          await rtc.produceMic(stream);
         })
-        .catch(() => {
-          // Mic not available — speaking indicator just won't work for self
+        .catch((err) => {
+          console.warn('[voice] Mic setup failed:', err);
         });
     }
   }
