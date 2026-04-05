@@ -81,6 +81,7 @@ RUN apt-get update && \
         curl unzip ca-certificates tini && \
     curl -fsSL https://bun.sh/install | bash && \
     ln -s /root/.bun/bin/bun /usr/local/bin/bun && \
+    ln -s /root/.bun/bin/bunx /usr/local/bin/bunx && \
     rm -rf /var/lib/apt/lists/*
 
 # Workspace manifests (needed for Bun workspace resolution at runtime)

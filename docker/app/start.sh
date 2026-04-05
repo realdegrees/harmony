@@ -3,7 +3,7 @@ set -e
 
 echo "Running database migrations..."
 cd /app/backend
-bunx prisma migrate deploy
+bun x prisma migrate deploy
 echo "Migrations complete."
 
 cd /app
