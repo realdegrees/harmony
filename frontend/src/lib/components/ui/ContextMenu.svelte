@@ -58,7 +58,37 @@
   tabindex="-1"
 >
   {#each items as item (item.label)}
-    {#if item.divider}
+    {#if item.type === 'slider'}
+      <!-- Slider item — does not close the menu on interaction -->
+      <div class="px-3 py-2" role="none">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">
+            {#if item.icon}
+              <span class="text-sm leading-none" aria-hidden="true">{item.icon}</span>
+            {/if}
+            {item.label}
+          </span>
+          <span class="text-xs font-semibold text-text-primary tabular-nums">
+            {Math.round(item.value * 100)}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min={item.min}
+          max={item.max}
+          step={item.step ?? 0.05}
+          value={item.value}
+          oninput={(e) => item.onChange(parseFloat((e.target as HTMLInputElement).value))}
+          class="w-full h-1.5 rounded-full appearance-none cursor-pointer
+                 bg-white/[0.12] accent-brand"
+          aria-label={item.label}
+        />
+        <div class="flex justify-between text-[10px] text-text-muted mt-1">
+          <span>{Math.round(item.min * 100)}%</span>
+          <span>{Math.round(item.max * 100)}%</span>
+        </div>
+      </div>
+    {:else if item.divider}
       <hr class="my-1.5 border-white/[0.07]" />
     {:else}
       <button

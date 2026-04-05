@@ -1,6 +1,6 @@
 import { ws } from '$lib/api/ws';
 import { getStreamByType } from '$lib/voice/streaming';
-import { getMicrophoneStream, watchSpeaking, getAudioContext } from '$lib/voice/audio';
+import { getMicrophoneStream, watchSpeaking, getAudioContext, toggleMute as setMicMuted } from '$lib/voice/audio';
 import { RtcSession } from '$lib/voice/rtc';
 import { auth } from '$lib/stores/auth.svelte';
 import type { VoiceParticipant, StreamType, StreamConfig, MediaServerTransport } from '@harmony/shared/types/voice';
@@ -43,6 +43,9 @@ class VoiceStore {
 
   // Hidden <audio> elements that play remote streams — one per remote user
   private audioElements = new Map<string, HTMLAudioElement>();
+
+  // Per-user volume (0–2, where 1 = 100%). Persisted in-memory only.
+  private userVolumes = new Map<string, number>();
 
   // The local screen/camera capture stream
   private activeStream: MediaStream | null = null;
@@ -303,6 +306,8 @@ class VoiceStore {
     const audio = document.createElement('audio');
     audio.autoplay = true;
     audio.srcObject = stream;
+    audio.volume = Math.min(1, this.userVolumes.get(userId) ?? 1);
+    audio.muted = this.localDeafened;
     document.body.appendChild(audio);
     this.audioElements.set(userId, audio);
   }
@@ -325,26 +330,52 @@ class VoiceStore {
   }
 
   toggleMute(): void {
-    // If currently deafened, unmuting must also undeafen (can't be unmuted while deafened)
+    // If currently deafened, unmuting must also undeafen
     if (this.localDeafened && this.localMuted) {
       this.localDeafened = false;
       this.localMuted = false;
+      if (this.micStream) setMicMuted(this.micStream, false);
+      this.setRemoteAudioDeafened(false);
       ws.send({ type: 'voice:deafen', data: { deafened: false } });
       ws.send({ type: 'voice:mute', data: { muted: false } });
       return;
     }
     this.localMuted = !this.localMuted;
+    if (this.micStream) setMicMuted(this.micStream, this.localMuted);
     ws.send({ type: 'voice:mute', data: { muted: this.localMuted } });
   }
 
   toggleDeafen(): void {
     this.localDeafened = !this.localDeafened;
+    this.setRemoteAudioDeafened(this.localDeafened);
     // Deafening also mutes
     if (this.localDeafened && !this.localMuted) {
       this.localMuted = true;
+      if (this.micStream) setMicMuted(this.micStream, true);
       ws.send({ type: 'voice:mute', data: { muted: true } });
+    } else if (!this.localDeafened) {
+      // Undeafening restores mic to current mute state
+      if (this.micStream) setMicMuted(this.micStream, this.localMuted);
     }
     ws.send({ type: 'voice:deafen', data: { deafened: this.localDeafened } });
+  }
+
+  private setRemoteAudioDeafened(deafened: boolean): void {
+    for (const audio of this.audioElements.values()) {
+      audio.muted = deafened;
+    }
+  }
+
+  setUserVolume(userId: string, volume: number): void {
+    // volume is 0–2 (0–200%)
+    this.userVolumes.set(userId, volume);
+    const audio = this.audioElements.get(userId);
+    if (audio) audio.volume = Math.min(1, volume); // HTMLAudioElement.volume clamps 0–1
+    // For volumes above 100% we'd need a GainNode — skip for now, clamp at 1
+  }
+
+  getUserVolume(userId: string): number {
+    return this.userVolumes.get(userId) ?? 1;
   }
 
   async startStream(type: StreamType, config: StreamConfig): Promise<void> {

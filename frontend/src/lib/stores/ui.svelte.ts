@@ -1,12 +1,24 @@
 import type { Message } from '@harmony/shared/types/message';
 
-export interface ContextMenuItem {
-  label: string;
-  icon?: string;
-  action: () => void;
-  danger?: boolean;
-  divider?: boolean;
-}
+export type ContextMenuItem =
+  | {
+      type?: 'action';
+      label: string;
+      icon?: string;
+      action: () => void;
+      danger?: boolean;
+      divider?: boolean;
+    }
+  | {
+      type: 'slider';
+      label: string;
+      icon?: string;
+      min: number;
+      max: number;
+      step?: number;
+      value: number;
+      onChange: (value: number) => void;
+    };
 
 interface ContextMenuState {
   x: number;

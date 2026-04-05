@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { VoiceParticipant } from '@harmony/shared/types/voice';
   import { StreamType } from '@harmony/shared/types/voice';
+  import { ui } from '$lib/stores/ui.svelte';
 
   interface StreamEntry {
     participant: VoiceParticipant;
@@ -18,6 +19,7 @@
   let isFullscreen = $state(false);
   let containerEl = $state<HTMLDivElement | undefined>(undefined);
   let videoEl = $state<HTMLVideoElement | undefined>(undefined);
+  let streamVolume = $state(1); // 0–1 for the video element
 
   const activeStream = $derived(streams[activeIndex] ?? streams[0] ?? null);
 
@@ -33,6 +35,26 @@
       videoEl.srcObject = activeStream?.stream ?? null;
     }
   });
+
+  $effect(() => {
+    if (videoEl) videoEl.volume = streamVolume;
+  });
+
+  function onVideoContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    ui.showContextMenu(e.clientX, e.clientY, [
+      {
+        type: 'slider',
+        label: 'Stream Volume',
+        icon: '🔊',
+        min: 0,
+        max: 1,
+        step: 0.05,
+        value: streamVolume,
+        onChange: (v) => { streamVolume = v; },
+      },
+    ]);
+  }
 
   // Track browser-native fullscreen exit (Esc key)
   $effect(() => {
@@ -122,7 +144,11 @@
   </div>
 
   <!-- Video area -->
-  <div class="relative flex-1 flex items-center justify-center bg-black min-h-0">
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="relative flex-1 flex items-center justify-center bg-black min-h-0"
+    oncontextmenu={onVideoContextMenu}
+  >
     {#if activeStream?.stream}
       <!-- svelte-ignore a11y_media_has_caption -->
       <video

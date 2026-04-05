@@ -1,6 +1,7 @@
 <script lang="ts">
   import { voice } from '$lib/stores/voice.svelte';
   import { auth } from '$lib/stores/auth.svelte';
+  import { ui } from '$lib/stores/ui.svelte';
   import Avatar from '$lib/components/ui/Avatar.svelte';
   import StreamView from '$lib/components/voice/StreamView.svelte';
   import type { VoiceParticipant } from '@harmony/shared/types/voice';
@@ -47,6 +48,23 @@
 
   function isMe(p: VoiceParticipant) {
     return p.userId === auth.user?.id;
+  }
+
+  function onParticipantContextMenu(e: MouseEvent, p: VoiceParticipant) {
+    if (isMe(p)) return; // No volume control for self
+    e.preventDefault();
+    ui.showContextMenu(e.clientX, e.clientY, [
+      {
+        type: 'slider',
+        label: 'Volume',
+        icon: '🔊',
+        min: 0,
+        max: 2,
+        step: 0.05,
+        value: voice.getUserVolume(p.userId),
+        onChange: (v) => voice.setUserVolume(p.userId, v),
+      },
+    ]);
   }
 </script>
 
@@ -119,7 +137,11 @@
                        ? 'border-brand/60 shadow-[0_0_16px_rgba(92,110,240,0.15)]'
                        : me
                          ? 'border-white/[0.12]'
-                         : 'border-white/[0.06]'}"
+                         : 'border-white/[0.06]'}
+                   {!me ? 'cursor-context-menu' : ''}"
+            oncontextmenu={(e) => onParticipantContextMenu(e, p)}
+            role="group"
+            aria-label="{p.user.displayName || p.user.username}"
           >
             <!-- Avatar + speaking/soundboard ring + LIVE badge -->
             <div class="relative">
