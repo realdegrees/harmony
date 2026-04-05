@@ -142,7 +142,17 @@
       aria-haspopup="true"
       aria-expanded={serverMenuOpen}
     >
-      <h1 class="font-bold text-text-primary truncate text-base tracking-tight">{APP_NAME}</h1>
+      <div class="flex items-center gap-2 min-w-0">
+        <svg width="22" height="22" viewBox="0 0 512 512" class="shrink-0" aria-hidden="true">
+          <rect width="512" height="512" rx="112" ry="112" fill="#5865F2"/>
+          <g fill="none" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="175" y1="112" x2="145" y2="390"/>
+            <line x1="337" y1="112" x2="367" y2="390"/>
+            <path d="M 200 245 C 218 340, 294 340, 312 245"/>
+          </g>
+        </svg>
+        <h1 class="font-bold text-text-primary truncate text-base tracking-tight">{APP_NAME}</h1>
+      </div>
       <svg
         width="16" height="16" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"

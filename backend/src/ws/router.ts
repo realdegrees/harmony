@@ -30,7 +30,7 @@ import {
 } from '../voice/rooms';
 import { startStream, stopStream } from '../voice/streaming';
 import { db } from '../db/client';
-import { getStorage } from '../media/storage';
+import { getStorage } from '../storage';
 import { Permissions, hasPermission } from '@harmony/shared/constants/permissions';
 
 // ---------------------------------------------------------------------------
